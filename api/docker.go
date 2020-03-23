@@ -40,12 +40,6 @@ type DockerApi struct {
 	cookieJar  *cookiejar.Jar
 }
 
-type User struct {
-	Id       string `json:"id"`
-	Username string `json:"username"`
-	Gravatar string `json:"gravatar_url"`
-}
-
 func (d *DockerApi) getRoute(p string) string {
 	return joinURL(d.routeBase, p)
 }
@@ -55,31 +49,7 @@ func joinURL(base string, paths ...string) string {
 	return fmt.Sprintf("%s/%s", strings.TrimRight(base, "/"), strings.TrimLeft(p, "/"))
 }
 
-// login logs in the user and remembers a token to use for authenticated commands.
-func (d *DockerApi) Login(username, password string) error {
-	loginPath := d.getRoute("users/login")
-	r, err := requests.Post(d.client, loginPath, map[string]string{"username": username, "password": password}, d.token)
-	if err != nil {
-		log.Error(err)
-		return err
-	}
-	var rawmap map[string]json.RawMessage
-	err = json.Unmarshal(r, &rawmap)
-	if err != nil {
-		return err
-	}
-	tokenStr := ""
-	_ = json.Unmarshal(rawmap["token"], &tokenStr)
-	d.token = tokenStr
-	return nil
-}
-
-func (d *DockerApi) Logout() error {
-	logoutPath := d.getRoute("logout")
-	_, err := requests.Post(d.client, logoutPath, nil, d.token)
-	return err
-}
-
+//GetBuildSettings gets the build settings for an image
 func (d *DockerApi) GetBuildSettings(username string, name string) string {
 	username = strings.ToLower(username)
 	settingsPath := d.getRoute(fmt.Sprintf("repositories/%s/%s/autobuild", username, name))
@@ -91,16 +61,123 @@ func (d *DockerApi) GetBuildSettings(username string, name string) string {
 	return string(r)
 }
 
-func (d *DockerApi) GetMyUser() (*User, error) {
-	pth := d.getRoute("user")
+func (d *DockerApi) GetBuildDetails(username, name, code string) error {
+	if username == "" {
+		return fmt.Errorf("no user given")
+	}
+	if name == "" {
+		return fmt.Errorf("no image name given")
+	}
+	if code == "" {
+		return fmt.Errorf("no build code given")
+	}
+	username = strings.ToLower(username)
+	name = strings.ToLower(name)
+	settingsPath := d.getRoute(fmt.Sprintf("repositories/%s/%s/buildhistory/%s", username, name, code))
+	r, err := requests.Get(d.client, settingsPath, d.token)
+	if err != nil {
+		log.Error(err)
+		return nil
+	}
+	log.Print(string(r))
+	return nil
+}
+
+//GetBuildTrigger Gets the build trigger for a given repository.
+func (d *DockerApi) GetBuildTrigger(username, name string) error {
+	if username == "" {
+		return fmt.Errorf("no user given")
+	}
+	if name == "" {
+		return fmt.Errorf("no image name given")
+	}
+	username = strings.ToLower(username)
+	name = strings.ToLower(name)
+	pth := d.getRoute(fmt.Sprintf("repositories/%s/%s/buildtrigger", username, name))
+	r, err := requests.Get(d.client, pth, d.token)
+	if err != nil {
+		log.Error(err)
+		return nil
+	}
+	log.Print(string(r))
+	return nil
+}
+
+//GetComments gets the comments for an image, default  page size is 100, pages start from 1
+func (d *DockerApi) GetComments(username, name string, pageSize int, page int) error {
+	if username == "" {
+		return fmt.Errorf("no user given")
+	}
+	if name == "" {
+		return fmt.Errorf("no image name given")
+	}
+	username = strings.ToLower(username)
+	name = strings.ToLower(name)
+	pth := d.getRoute(fmt.Sprintf("repositories/%s/%s/comments?page_size=%v&page=%v", username, name, pageSize, page))
+	r, err := requests.Get(d.client, pth, d.token)
+	if err != nil {
+		log.Error(err)
+		return nil
+	}
+	log.Print(r)
+	return nil
+}
+
+//GetUser gets info about the given user.
+func (d *DockerApi) GetUser(username string) (*User, error) {
+	if username == "" {
+		return nil, fmt.Errorf("no user given")
+	}
+	username = strings.ToLower(username)
+	pth := d.getRoute(fmt.Sprintf("users/%s", username))
 	r, err := requests.Get(d.client, pth, d.token)
 	if err != nil {
 		return nil, err
 	}
 	var user User
-	err = json.Unmarshal(r, &user)
-	if err != nil {
-		return nil, err
-	}
+	_ = json.Unmarshal(r, &user)
 	return &user, nil
+}
+
+//GetWebhooks Gets the webhooks for a repository you own.
+func (d *DockerApi) GetWebhooks(username, name string, pageSize, page int) error {
+	if username == "" {
+		return fmt.Errorf("no user given")
+	}
+	if name == "" {
+		return fmt.Errorf("no image name given")
+	}
+	username = strings.ToLower(username)
+	name = strings.ToLower(name)
+	pth := d.getRoute(fmt.Sprintf("repositories/%s/%s/repositories/webhooks?page_size=%v&page=%v", username, name, pageSize, page))
+	r, err := requests.Get(d.client, pth, d.token)
+	if err != nil {
+		log.Error(err)
+		return nil
+	}
+	log.Print(r)
+	return nil
+}
+
+//AddCollaborator adds a collaborator to an image
+func (d *DockerApi) AddCollaborator(username, name, collaborator string) error {
+	username = strings.ToLower(username)
+	collaborator = strings.ToLower(collaborator)
+	if username == "" {
+		return fmt.Errorf("no user given")
+	}
+	if name == "" {
+		return fmt.Errorf("no image name given")
+	}
+	if collaborator == "" {
+		return fmt.Errorf("no collaborator given")
+	}
+	pth := d.getRoute(fmt.Sprintf("repositories/%s/%s/collaborators", username, name))
+	_, err := requests.Post(d.client, pth, map[string]string{
+		"user": collaborator,
+	}, d.token)
+	if err != nil {
+		return err
+	}
+	return nil
 }

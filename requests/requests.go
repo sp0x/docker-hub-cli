@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
-	log "github.com/sirupsen/logrus"
 	"io/ioutil"
 	"net/http"
 	"strconv"
@@ -38,7 +37,58 @@ func Post(client *http.Client, route string, objData interface{}, token string) 
 	}
 	res, err := client.Do(req)
 	if err != nil {
-		log.Printf("order error: %v", err)
+		return nil, err
+	}
+	defer res.Body.Close()
+	if res.StatusCode != http.StatusOK {
+		return nil, errors.New(strconv.Itoa(res.StatusCode))
+	}
+	body, err := ioutil.ReadAll(res.Body)
+	return body, err
+}
+
+func Put(client *http.Client, route string, objData interface{}, token string) ([]byte, error) {
+	if client == nil {
+		return []byte{}, errors.New("null transport client")
+	}
+	data, err := json.Marshal(objData)
+	if err != nil {
+		return nil, err
+	}
+	buff := bytes.NewBuffer(data)
+	req, _ := http.NewRequest("PUT", route, buff)
+	setupHeaders(req)
+	if token != "" {
+		authenticateRequest(req, token)
+	}
+	res, err := client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer res.Body.Close()
+	if res.StatusCode != http.StatusOK {
+		return nil, errors.New(strconv.Itoa(res.StatusCode))
+	}
+	body, err := ioutil.ReadAll(res.Body)
+	return body, err
+}
+
+func Patch(client *http.Client, route string, objData interface{}, token string) ([]byte, error) {
+	if client == nil {
+		return []byte{}, errors.New("null transport client")
+	}
+	data, err := json.Marshal(objData)
+	if err != nil {
+		return nil, err
+	}
+	buff := bytes.NewBuffer(data)
+	req, _ := http.NewRequest("PATCH", route, buff)
+	setupHeaders(req)
+	if token != "" {
+		authenticateRequest(req, token)
+	}
+	res, err := client.Do(req)
+	if err != nil {
 		return nil, err
 	}
 	defer res.Body.Close()
@@ -58,10 +108,29 @@ func Get(client *http.Client, route string, token string) ([]byte, error) {
 	if token != "" {
 		authenticateRequest(req, token)
 	}
-
 	res, err := client.Do(req)
 	if err != nil {
-		log.Printf("order error: %v", err)
+		return nil, err
+	}
+	defer res.Body.Close()
+	body, err := ioutil.ReadAll(res.Body)
+	if res.StatusCode != http.StatusOK {
+		return nil, errors.New(strconv.Itoa(res.StatusCode))
+	}
+	return body, err
+}
+
+func Delete(client *http.Client, route string, token string) ([]byte, error) {
+	if client == nil {
+		return []byte{}, errors.New("null transport client")
+	}
+	req, _ := http.NewRequest("DELETE", route, nil)
+	setupHeaders(req)
+	if token != "" {
+		authenticateRequest(req, token)
+	}
+	res, err := client.Do(req)
+	if err != nil {
 		return nil, err
 	}
 	defer res.Body.Close()
