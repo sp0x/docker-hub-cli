@@ -45,9 +45,10 @@ func (d *DockerApi) getRoute(p string) string {
 	return joinURL(d.routeBase, p)
 }
 
+// login logs in the user and remembers a token to use for authenticated commands.
 func (d *DockerApi) login(username, password string) error {
-	path := d.getRoute(fmt.Sprintf("users/login"))
-	r, err := post(d, path, map[string]string{"username": username, "password": password})
+	loginPath := d.getRoute("users/login")
+	r, err := post(d, loginPath, map[string]string{"username": username, "password": password}, false)
 	if err != nil {
 		log.Error(err)
 		return err
@@ -63,10 +64,16 @@ func (d *DockerApi) login(username, password string) error {
 	return nil
 }
 
+func (d *DockerApi) logout() error {
+	logoutPath := d.getRoute("logout")
+	_, err := post(d, logoutPath, nil, true)
+	return err
+}
+
 func (d *DockerApi) getBuildSettings(username string, name string) string {
 	username = strings.ToLower(username)
 	path := d.getRoute(fmt.Sprintf("repositories/%s/%s/autobuild", username, name))
-	r, err := get(d, path)
+	r, err := get(d, path, false)
 	if err != nil {
 		log.Error(err)
 		return ""
@@ -74,7 +81,17 @@ func (d *DockerApi) getBuildSettings(username string, name string) string {
 	return string(r)
 }
 
-func post(d *DockerApi, route string, objData interface{}) ([]byte, error) {
+func authenticateRequest(d *DockerApi, req *http.Request) {
+	req.Header.Add("authorization", "JWT "+d.token)
+}
+
+func jsonifyRequest(req *http.Request) {
+	req.Header.Add("content-type", "application/json")
+	//If we request gzip, we have to manually gunzip it.
+	//req.Header.Add("Accept-Encoding", "gzip")
+}
+
+func post(d *DockerApi, route string, objData interface{}, withAuth bool) ([]byte, error) {
 	if d.client == nil {
 		return []byte{}, errors.New("null transport client")
 	}
@@ -86,6 +103,12 @@ func post(d *DockerApi, route string, objData interface{}) ([]byte, error) {
 	req, _ := http.NewRequest("POST", route, buff)
 	req.Header.Add("cache-control", "no-cache")
 	jsonifyRequest(req)
+	if withAuth {
+		if d.token == "" {
+			return nil, fmt.Errorf("not authenticated")
+		}
+		authenticateRequest(d, req)
+	}
 	res, err := d.client.Do(req)
 	if err != nil {
 		log.Printf("order error: %v", err)
@@ -99,19 +122,20 @@ func post(d *DockerApi, route string, objData interface{}) ([]byte, error) {
 	return body, err
 }
 
-func jsonifyRequest(req *http.Request) {
-	req.Header.Add("content-type", "application/json")
-	//If we request gzip, we have to manually gunzip it.
-	//req.Header.Add("Accept-Encoding", "gzip")
-}
-
-func get(d *DockerApi, route string) ([]byte, error) {
+func get(d *DockerApi, route string, withAuth bool) ([]byte, error) {
 	if d.client == nil {
 		return []byte{}, errors.New("null transport client")
 	}
 	req, _ := http.NewRequest("GET", route, nil)
 	req.Header.Add("cache-control", "no-cache")
 	jsonifyRequest(req)
+	if withAuth {
+		if d.token == "" {
+			return nil, fmt.Errorf("not authenticated")
+		}
+		authenticateRequest(d, req)
+	}
+
 	res, err := d.client.Do(req)
 	if err != nil {
 		log.Printf("order error: %v", err)
