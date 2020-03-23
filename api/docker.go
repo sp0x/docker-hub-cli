@@ -56,7 +56,7 @@ func joinURL(base string, paths ...string) string {
 }
 
 // login logs in the user and remembers a token to use for authenticated commands.
-func (d *DockerApi) login(username, password string) error {
+func (d *DockerApi) Login(username, password string) error {
 	loginPath := d.getRoute("users/login")
 	r, err := requests.Post(d.client, loginPath, map[string]string{"username": username, "password": password}, d.token)
 	if err != nil {
@@ -74,13 +74,13 @@ func (d *DockerApi) login(username, password string) error {
 	return nil
 }
 
-func (d *DockerApi) logout() error {
+func (d *DockerApi) Logout() error {
 	logoutPath := d.getRoute("logout")
 	_, err := requests.Post(d.client, logoutPath, nil, d.token)
 	return err
 }
 
-func (d *DockerApi) getBuildSettings(username string, name string) string {
+func (d *DockerApi) GetBuildSettings(username string, name string) string {
 	username = strings.ToLower(username)
 	settingsPath := d.getRoute(fmt.Sprintf("repositories/%s/%s/autobuild", username, name))
 	r, err := requests.Get(d.client, settingsPath, d.token)
@@ -91,7 +91,7 @@ func (d *DockerApi) getBuildSettings(username string, name string) string {
 	return string(r)
 }
 
-func (d *DockerApi) getMyUser() (*User, error) {
+func (d *DockerApi) GetMyUser() (*User, error) {
 	pth := d.getRoute("user")
 	r, err := requests.Get(d.client, pth, d.token)
 	if err != nil {

@@ -9,21 +9,21 @@ import (
 
 func main() {
 	dapi := api.NewApi()
-	err := dapi.login(os.Getenv("DOCKER_USER"), os.Getenv("DOCKER_PASS"))
+	err := dapi.Login(os.Getenv("DOCKER_USER"), os.Getenv("DOCKER_PASS"))
 	if err != nil {
 		fmt.Println("Couldn't log in, try again.")
 		return
 	}
-	me, err := dapi.getMyUser()
+	me, err := dapi.GetMyUser()
 	if err != nil {
 		fmt.Printf("Couldn't get user: %v", err)
 		return
 	}
 	log.Print(me)
-	err = dapi.logout()
+	err = dapi.Logout()
 	if err != nil {
 		fmt.Println("Couldn't logout")
 	}
-	t := dapi.getBuildSettings("sp0x", "nginx-proxy")
+	t := dapi.GetBuildSettings("sp0x", "nginx-proxy")
 	log.Print(t)
 }
