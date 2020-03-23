@@ -22,7 +22,7 @@ func setupHeaders(req *http.Request) {
 	//req.Header.Add("Accept-Encoding", "gzip")
 }
 
-func post(client *http.Client, route string, objData interface{}, token string) ([]byte, error) {
+func Post(client *http.Client, route string, objData interface{}, token string) ([]byte, error) {
 	if client == nil {
 		return []byte{}, errors.New("null transport client")
 	}
@@ -49,7 +49,7 @@ func post(client *http.Client, route string, objData interface{}, token string) 
 	return body, err
 }
 
-func get(client *http.Client, route string, token string) ([]byte, error) {
+func Get(client *http.Client, route string, token string) ([]byte, error) {
 	if client == nil {
 		return []byte{}, errors.New("null transport client")
 	}
