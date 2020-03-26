@@ -49,6 +49,53 @@ func joinURL(base string, paths ...string) string {
 	return fmt.Sprintf("%s/%s", strings.TrimRight(base, "/"), strings.TrimLeft(p, "/"))
 }
 
+func (d *DockerApi) SetRepositoryDescription(username, name string, descShort, descLong string) error {
+	if username == "" {
+		return fmt.Errorf("no user given")
+	}
+	if name == "" {
+		return fmt.Errorf("no image name given")
+	}
+	username = strings.ToLower(username)
+	name = strings.ToLower(name)
+	pth := d.getRoute(fmt.Sprintf("repositories/%s/%s", username, name))
+	data := map[string]string{}
+	if descLong != "" {
+		data["full_description"] = descLong
+	}
+	if descShort != "" {
+		data["description"] = descShort
+	}
+	r, err := requests.Patch(d.client, pth, data, d.token)
+	if err != nil {
+		log.Error(err)
+		return nil
+	}
+	log.Print(string(r))
+	return nil
+}
+
+func (d *DockerApi) SetRepositoryPrivacy(username, name string, isPrivate bool) error {
+	if username == "" {
+		return fmt.Errorf("no user given")
+	}
+	if name == "" {
+		return fmt.Errorf("no image name given")
+	}
+	username = strings.ToLower(username)
+	name = strings.ToLower(name)
+	pth := d.getRoute(fmt.Sprintf("repositories/%s/%s/privacy", username, name))
+	r, err := requests.Post(d.client, pth, map[string]interface{}{
+		"is_private": isPrivate,
+	}, d.token)
+	if err != nil {
+		log.Error(err)
+		return nil
+	}
+	log.Print(string(r))
+	return nil
+}
+
 //GetBuildSettings gets the build settings for an image
 func (d *DockerApi) GetBuildSettings(username string, name string) string {
 	username = strings.ToLower(username)
@@ -103,6 +150,10 @@ func (d *DockerApi) GetBuildTrigger(username, name string) error {
 	return nil
 }
 
+func (d *DockerApi) SaveBuildTag(username, name string, id string, details string) error {
+
+}
+
 //GetComments gets the comments for an image, default  page size is 100, pages start from 1
 func (d *DockerApi) GetComments(username, name string, pageSize int, page int) error {
 	if username == "" {
@@ -120,6 +171,109 @@ func (d *DockerApi) GetComments(username, name string, pageSize int, page int) e
 		return nil
 	}
 	log.Print(r)
+	return nil
+}
+
+//TODO Gets the tags for a repository
+func (d *DockerApi) GetTags(username, name string, pageSize, page int) error {
+	if username != "" && name == "" {
+		name = username
+		username = "library "
+	}
+	if username == "" || username == "_" {
+		username = "library"
+	}
+	username = strings.ToLower(username)
+	pth := d.getRoute(fmt.Sprintf("repositories/%s/%s/tags?page_size=%v&page=%v", username, name, pageSize, page))
+	r, err := requests.Get(d.client, pth, d.token)
+	if err != nil {
+		return nil
+	}
+	log.Print(string(r))
+	return nil
+}
+
+type Repository struct {
+}
+
+func (d *DockerApi) GetRepository(username, name string) (*Repository, error) {
+	var repo Repository
+	if username != "" && name == "" {
+		name = username
+		username = "library"
+	}
+	if username == "_" || username == "" {
+		username = "library"
+	}
+	username = strings.ToLower(username)
+	pth := d.getRoute(fmt.Sprintf("repositories/%s/%s", username, name))
+	r, err := requests.Get(d.client, pth, d.token)
+	if err != nil {
+		return nil, err
+	}
+	_ = json.Unmarshal(r, &repo)
+	return &repo, nil
+}
+
+//TODO Creates a build tag for a given repository.
+func (d *DockerApi) TriggerBuild(username, name string, dockerfileLocation, sourceType, sourceName string) error {
+	if username == "" {
+		return fmt.Errorf("no user given")
+	}
+	if name == "" {
+		return fmt.Errorf("no image name given")
+	}
+	username = strings.ToLower(username)
+	name = strings.ToLower(name)
+	pth := d.getRoute(fmt.Sprintf("repositories/%s/%s/autobuild/trigger-build", username, name))
+	data := map[string]string{
+		"dockerfile_location": dockerfileLocation,
+		"source_type":         sourceType,
+		"source_name":         sourceName,
+	}
+	r, err := requests.Post(d.client, pth, data, d.token)
+	if err != nil {
+		return nil
+	}
+	log.Print(string(r))
+	return nil
+}
+
+//TODO Stars a repository.
+func (d *DockerApi) StarRepository(username, name string) error {
+	if username == "" {
+		return fmt.Errorf("no user given")
+	}
+	if name == "" {
+		return fmt.Errorf("no image name given")
+	}
+	username = strings.ToLower(username)
+	name = strings.ToLower(name)
+	pth := d.getRoute(fmt.Sprintf("repositories/%s/%s/stars/", username, name))
+	r, err := requests.Post(d.client, pth, map[string]string{}, d.token)
+	if err != nil {
+		return nil
+	}
+	log.Print(string(r))
+	return nil
+}
+
+//TODO
+func (d *DockerApi) UnstarRepository(username, name string) error {
+	if username == "" {
+		return fmt.Errorf("no user given")
+	}
+	if name == "" {
+		return fmt.Errorf("no image name given")
+	}
+	username = strings.ToLower(username)
+	name = strings.ToLower(name)
+	pth := d.getRoute(fmt.Sprintf("repositories/%s/%s/stars", username, name))
+	r, err := requests.Delete(d.client, pth, d.token)
+	if err != nil {
+		return nil
+	}
+	log.Print(string(r))
 	return nil
 }
 
