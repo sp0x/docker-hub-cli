@@ -367,12 +367,11 @@ func (d *DockerApi) CreateBuildLink(username, name, toRepo string) error {
 	data := map[string]string{
 		"to_repo": toRepo,
 	}
-	r, err := requests.Post(d.client, pth, data, d.token)
+	_, err := requests.Post(d.client, pth, data, d.token)
 	if err != nil {
 		log.Error(err)
 		return nil
 	}
-	log.Print(r)
 	return nil
 }
 

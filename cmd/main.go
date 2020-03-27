@@ -46,8 +46,8 @@ func main() {
 		return
 	}
 	log.Print(repo)
-	repoLinks := repo.GetGitRepoLinks()
-	log.Print(repoLinks)
+	repoLink := repo.GetGitRepo()
+	log.Print(repoLink)
 
 	buildSettings, err := dapi.GetBuildSettings(dapi.GetUsername(), "nginx-proxy")
 	if err != nil {
