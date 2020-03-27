@@ -14,16 +14,42 @@ func main() {
 		fmt.Println("Couldn't log in, try again.")
 		return
 	}
-	me, err := dapi.GetMyUser()
+	//me, err := dapi.GetMyUser()
+	//if err != nil {
+	//	fmt.Printf("Couldn't get user: %v", err)
+	//	return
+	//}
+	//log.Print(me)
+	//repos, err := dapi.MyRepositories()
+	//if err != nil {
+	//	fmt.Printf("Couldn't get repositories")
+	//	return
+	//}
+	//log.Print(repos)
+	//repos, err := dapi.GetRepositoriesStarred(dapi.GetUsername(), 0, 0)
+	//if err != nil {
+	//	fmt.Printf("Couldn't get repositories")
+	//	return
+	//}
+	//log.Print(repos)
+
+	repo, err := dapi.GetRepository(dapi.GetUsername(), "nginx-proxy")
 	if err != nil {
-		fmt.Printf("Couldn't get user: %v", err)
+		fmt.Printf("Couldn't get repository")
 		return
 	}
-	log.Print(me)
+	log.Print(repo)
+
+	buildSettings, err := dapi.GetBuildSettings(dapi.GetUsername(), "nginx-proxy")
+	if err != nil {
+		fmt.Printf("Couldn't get build settings")
+		return
+	}
+	log.Print(buildSettings)
+
 	err = dapi.Logout()
 	if err != nil {
 		fmt.Println("Couldn't logout")
 	}
-	t := dapi.GetBuildSettings("sp0x", "nginx-proxy")
-	log.Print(t)
+
 }

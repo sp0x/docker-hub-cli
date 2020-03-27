@@ -28,6 +28,7 @@ func (d *DockerApi) Login(username, password string) error {
 	tokenStr := ""
 	_ = json.Unmarshal(rawmap["token"], &tokenStr)
 	d.token = tokenStr
+	d.username = username
 	return nil
 }
 

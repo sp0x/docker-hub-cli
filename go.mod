@@ -2,4 +2,8 @@ module github.com/sp0x/docker-hub-cli
 
 go 1.12
 
-require github.com/sirupsen/logrus v1.5.0
+require (
+	github.com/onsi/ginkgo v1.12.0 // indirect
+	github.com/onsi/gomega v1.9.0 // indirect
+	github.com/sirupsen/logrus v1.5.0
+)

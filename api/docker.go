@@ -38,6 +38,45 @@ type DockerApi struct {
 	routeBase  string
 	token      string
 	cookieJar  *cookiejar.Jar
+	username   string
+}
+
+type SearchResult struct {
+	Count    int         `json:"count"`
+	Next     interface{} `json:"next"`
+	Previous interface{} `json:"previous"`
+	Results  json.RawMessage
+}
+
+type UserRepository struct {
+	Namespace string `json:"namespace"`
+	Name      string `json:"name"`
+}
+
+type RepositoryPermissions struct {
+	Read  bool `json:"read"`
+	Write bool `json:"write"`
+	Admin bool `json:"admin"`
+}
+
+type Repository struct {
+	User            string                 `json:"user"`
+	Name            string                 `json:"name"`
+	Namespace       string                 `json:"namespace"`
+	RepositoryType  string                 `json:"repository_type"`
+	Status          int                    `json:"status"`
+	Description     string                 `json:"description"`
+	IsPrivate       bool                   `json:"is_private"`
+	IsAutomated     bool                   `json:"is_automated"`
+	CanEdit         bool                   `json:"can_edit"`
+	StarCount       int                    `json:"start_count"`
+	PullCount       int                    `json:"pull_count"`
+	LastUpdated     *time.Time             `json:"last_updated"`
+	IsMigrated      bool                   `json:"is_migrated"`
+	HasStarred      bool                   `json:"has_starred"`
+	FullDescription string                 `json:"full_description"`
+	Affiliation     string                 `json:"affiliation"`
+	Permissions     *RepositoryPermissions `json:"permissions"`
 }
 
 func (d *DockerApi) getRoute(p string) string {
@@ -97,15 +136,15 @@ func (d *DockerApi) SetRepositoryPrivacy(username, name string, isPrivate bool) 
 }
 
 //GetBuildSettings gets the build settings for a repository
-func (d *DockerApi) GetBuildSettings(username string, name string) string {
+func (d *DockerApi) GetBuildSettings(username string, name string) (string, error) {
 	username = strings.ToLower(username)
 	settingsPath := d.getRoute(fmt.Sprintf("repositories/%s/%s/autobuild", username, name))
 	r, err := requests.Get(d.client, settingsPath, d.token)
 	if err != nil {
 		log.Error(err)
-		return ""
+		return "", err
 	}
-	return string(r)
+	return string(r), nil
 }
 
 //GetBuildDetails Gets the details for a given build of a repository.
@@ -131,25 +170,37 @@ func (d *DockerApi) GetBuildDetails(username, name, code string) error {
 	return nil
 }
 
+//MyRepositories gets the repositories of the currently logged in user.
+func (d *DockerApi) MyRepositories() ([]UserRepository, error) {
+	if d.username == "" {
+		return nil, fmt.Errorf("user not authenticated")
+	}
+	return d.Repositories(d.username)
+}
+
 //Repositories gets the repositories of an user
-func (d *DockerApi) Repositories(username string) error {
+func (d *DockerApi) Repositories(username string) ([]UserRepository, error) {
 	if username == "" {
-		return fmt.Errorf("no user given")
+		return nil, fmt.Errorf("no user given")
 	}
 	username = strings.ToLower(username)
 	pth := d.getRoute(fmt.Sprintf("users/%s/repositories", username))
 	r, err := requests.Get(d.client, pth, d.token)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	log.Print(string(r))
-	return nil
+	var repositories []UserRepository
+	err = json.Unmarshal(r, &repositories)
+	if err != nil {
+		return nil, err
+	}
+	return repositories, nil
 }
 
-//RepositoriesStarred Gets the starred repositories for a user.
-func (d *DockerApi) RepositoriesStarred(username string, page, pageSize int) error {
+//GetRepositoriesStarred Gets the starred repositories for a user.
+func (d *DockerApi) GetRepositoriesStarred(username string, page, pageSize int) ([]UserRepository, error) {
 	if username == "" {
-		return fmt.Errorf("no user given")
+		return nil, fmt.Errorf("no user given")
 	}
 	username = strings.ToLower(username)
 	if page == 0 {
@@ -162,10 +213,22 @@ func (d *DockerApi) RepositoriesStarred(username string, page, pageSize int) err
 	pth := d.getRoute(fmt.Sprintf("users/%s/repositories/starred?page_size=%v&page=%v", username, pageSize, page))
 	r, err := requests.Get(d.client, pth, d.token)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	log.Print(string(r))
-	return nil
+	var search SearchResult
+	err = json.Unmarshal(r, &search)
+	if err != nil {
+		return nil, err
+	}
+	if search.Count == 0 {
+		return nil, nil
+	}
+	var results []UserRepository
+	err = json.Unmarshal(search.Results, &results)
+	if err != nil {
+		return nil, err
+	}
+	return results, nil
 }
 
 //GetBuildTriggerHistory Gets the build trigger history for a given repository.
@@ -281,9 +344,15 @@ func (d *DockerApi) GetTags(username, name string, pageSize, page int) error {
 	return nil
 }
 
-type Repository struct {
+//GetMyRepository gets details about a user owned repository
+func (d *DockerApi) GetMyRepository(name string) (*Repository, error) {
+	if d.username == "" {
+		return nil, fmt.Errorf("user not authenticated")
+	}
+	return d.GetRepository(d.GetUsername(), name)
 }
 
+//GetRepository gets details about a repository
 func (d *DockerApi) GetRepository(username, name string) (*Repository, error) {
 	var repo Repository
 	if username != "" && name == "" {
@@ -299,7 +368,10 @@ func (d *DockerApi) GetRepository(username, name string) (*Repository, error) {
 	if err != nil {
 		return nil, err
 	}
-	_ = json.Unmarshal(r, &repo)
+	err = json.Unmarshal(r, &repo)
+	if err != nil {
+		return nil, err
+	}
 	return &repo, nil
 }
 
@@ -743,4 +815,8 @@ func (d *DockerApi) AddCollaborator(username, name, collaborator string) error {
 		return err
 	}
 	return nil
+}
+
+func (d *DockerApi) GetUsername() string {
+	return d.username
 }
