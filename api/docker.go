@@ -48,37 +48,6 @@ type SearchResult struct {
 	Results  json.RawMessage
 }
 
-type UserRepository struct {
-	Namespace string `json:"namespace"`
-	Name      string `json:"name"`
-}
-
-type RepositoryPermissions struct {
-	Read  bool `json:"read"`
-	Write bool `json:"write"`
-	Admin bool `json:"admin"`
-}
-
-type Repository struct {
-	User            string                 `json:"user"`
-	Name            string                 `json:"name"`
-	Namespace       string                 `json:"namespace"`
-	RepositoryType  string                 `json:"repository_type"`
-	Status          int                    `json:"status"`
-	Description     string                 `json:"description"`
-	IsPrivate       bool                   `json:"is_private"`
-	IsAutomated     bool                   `json:"is_automated"`
-	CanEdit         bool                   `json:"can_edit"`
-	StarCount       int                    `json:"start_count"`
-	PullCount       int                    `json:"pull_count"`
-	LastUpdated     *time.Time             `json:"last_updated"`
-	IsMigrated      bool                   `json:"is_migrated"`
-	HasStarred      bool                   `json:"has_starred"`
-	FullDescription string                 `json:"full_description"`
-	Affiliation     string                 `json:"affiliation"`
-	Permissions     *RepositoryPermissions `json:"permissions"`
-}
-
 func (d *DockerApi) getRoute(p string) string {
 	return joinURL(d.routeBase, p)
 }

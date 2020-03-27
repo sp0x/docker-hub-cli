@@ -33,12 +33,21 @@ func main() {
 	//}
 	//log.Print(repos)
 
-	repo, err := dapi.GetRepository(dapi.GetUsername(), "nginx-proxy")
+	//repo, err := dapi.GetMyRepository("nginx-proxy")
+	//if err != nil {
+	//	fmt.Printf("Couldn't get repository")
+	//	return
+	//}
+	//log.Print(repo)
+
+	repo, err := dapi.GetRepository("", "nginx")
 	if err != nil {
-		fmt.Printf("Couldn't get repository")
+		fmt.Printf("Couldn't get repository %v", err)
 		return
 	}
 	log.Print(repo)
+	repoLinks := repo.GetGitRepoLinks()
+	log.Print(repoLinks)
 
 	buildSettings, err := dapi.GetBuildSettings(dapi.GetUsername(), "nginx-proxy")
 	if err != nil {
