@@ -96,7 +96,7 @@ func (d *DockerApi) SetRepositoryPrivacy(username, name string, isPrivate bool) 
 	return nil
 }
 
-//GetBuildSettings gets the build settings for an image
+//GetBuildSettings gets the build settings for a repository
 func (d *DockerApi) GetBuildSettings(username string, name string) string {
 	username = strings.ToLower(username)
 	settingsPath := d.getRoute(fmt.Sprintf("repositories/%s/%s/autobuild", username, name))
@@ -108,6 +108,7 @@ func (d *DockerApi) GetBuildSettings(username string, name string) string {
 	return string(r)
 }
 
+//GetBuildDetails Gets the details for a given build of a repository.
 func (d *DockerApi) GetBuildDetails(username, name, code string) error {
 	if username == "" {
 		return fmt.Errorf("no user given")
@@ -125,6 +126,62 @@ func (d *DockerApi) GetBuildDetails(username, name, code string) error {
 	if err != nil {
 		log.Error(err)
 		return nil
+	}
+	log.Print(string(r))
+	return nil
+}
+
+//Repositories gets the repositories of an user
+func (d *DockerApi) Repositories(username string) error {
+	if username == "" {
+		return fmt.Errorf("no user given")
+	}
+	username = strings.ToLower(username)
+	pth := d.getRoute(fmt.Sprintf("users/%s/repositories", username))
+	r, err := requests.Get(d.client, pth, d.token)
+	if err != nil {
+		return err
+	}
+	log.Print(string(r))
+	return nil
+}
+
+//RepositoriesStarred Gets the starred repositories for a user.
+func (d *DockerApi) RepositoriesStarred(username string, page, pageSize int) error {
+	if username == "" {
+		return fmt.Errorf("no user given")
+	}
+	username = strings.ToLower(username)
+	if page == 0 {
+		page = 1
+	}
+	if pageSize <= 0 {
+		pageSize = 100
+	}
+
+	pth := d.getRoute(fmt.Sprintf("users/%s/repositories/starred?page_size=%v&page=%v", username, pageSize, page))
+	r, err := requests.Get(d.client, pth, d.token)
+	if err != nil {
+		return err
+	}
+	log.Print(string(r))
+	return nil
+}
+
+//GetBuildTriggerHistory Gets the build trigger history for a given repository.
+func (d *DockerApi) GetBuildTriggerHistory(username, name string) error {
+	if username == "" {
+		return fmt.Errorf("no user given")
+	}
+	if name == "" {
+		return fmt.Errorf("no repo name given")
+	}
+	username = strings.ToLower(username)
+	name = strings.ToLower(name)
+	pth := d.getRoute(fmt.Sprintf("repositories/%s/%s/buildtrigger/history", username, name))
+	r, err := requests.Get(d.client, pth, d.token)
+	if err != nil {
+		return err
 	}
 	log.Print(string(r))
 	return nil
@@ -150,8 +207,39 @@ func (d *DockerApi) GetBuildTrigger(username, name string) error {
 	return nil
 }
 
-func (d *DockerApi) SaveBuildTag(username, name string, id string, details string) error {
-
+func (d *DockerApi) SaveBuildTag(username, name string, id string, tagName, dockerfileLocation, sourceType, sourceName string) error {
+	if username == "" {
+		return fmt.Errorf("no user given")
+	}
+	if name == "" {
+		return fmt.Errorf("no image name given")
+	}
+	username = strings.ToLower(username)
+	name = strings.ToLower(name)
+	pth := d.getRoute(fmt.Sprintf("repositories/%s/%s/autobuild/tags/%s", username, name, id))
+	if dockerfileLocation == "" {
+		dockerfileLocation = "/"
+	}
+	if sourceType == "" {
+		sourceType = "Branch"
+	}
+	if sourceName == "" {
+		sourceName = "master"
+	}
+	data := map[string]string{
+		"id":                  id,
+		"name":                tagName,
+		"dockerfile_location": dockerfileLocation,
+		"source_type":         sourceType,
+		"source_name":         sourceName,
+	}
+	r, err := requests.Put(d.client, pth, data, d.token)
+	if err != nil {
+		log.Error(err)
+		return nil
+	}
+	log.Print(string(r))
+	return nil
 }
 
 //GetComments gets the comments for an image, default  page size is 100, pages start from 1
@@ -213,6 +301,327 @@ func (d *DockerApi) GetRepository(username, name string) (*Repository, error) {
 	}
 	_ = json.Unmarshal(r, &repo)
 	return &repo, nil
+}
+
+//CreateBuildLink Creates a build link for a given repository to the given repository.
+func (d *DockerApi) CreateBuildLink(username, name, toRepo string) error {
+	if username == "" {
+		return fmt.Errorf("no user given")
+	}
+	if name == "" {
+		return fmt.Errorf("no image name given")
+	}
+	if toRepo == "" {
+		return fmt.Errorf("no target repo given")
+	}
+	username = strings.ToLower(username)
+	name = strings.ToLower(name)
+	if !strings.Contains(toRepo, "/") {
+		toRepo = fmt.Sprintf("library/%s", toRepo)
+	}
+	if string(toRepo[0:2]) == "_/" {
+		toRepo = fmt.Sprintf("library/%s", string(toRepo[2:]))
+	}
+	pth := d.getRoute(fmt.Sprintf("repositories/%s/%s/links", username, name))
+	data := map[string]string{
+		"to_repo": toRepo,
+	}
+	r, err := requests.Post(d.client, pth, data, d.token)
+	if err != nil {
+		log.Error(err)
+		return nil
+	}
+	log.Print(r)
+	return nil
+}
+
+//CreateBuildTag Creates a build tag for a given repository.
+func (d *DockerApi) CreateBuildTag(username, name, tagname, dockerFileLocation, sourceType, sourceName string) error {
+	if username == "" {
+		return fmt.Errorf("no user given")
+	}
+	if name == "" {
+		return fmt.Errorf("no image name given")
+	}
+	if tagname == "" {
+		return fmt.Errorf("no tagname given")
+	}
+	username = strings.ToLower(username)
+	name = strings.ToLower(name)
+	if dockerFileLocation == "" {
+		dockerFileLocation = "/"
+	}
+	if sourceType == "" {
+		sourceType = "Branch"
+	}
+	if sourceName == "" {
+		sourceName = "master"
+	}
+
+	pth := d.getRoute(fmt.Sprintf("repositories/%s/%s/autobuild/tags", username, name))
+	data := map[string]interface{}{
+		"isNew":               true,
+		"namespace":           username,
+		"repoName":            name,
+		"name":                tagname,
+		"dockerfile_location": dockerFileLocation,
+		"source_type":         sourceType,
+		"source_name":         sourceName,
+	}
+	r, err := requests.Post(d.client, pth, data, d.token)
+	if err != nil {
+		log.Error(err)
+		return nil
+	}
+	log.Print(r)
+	return nil
+}
+
+//CreateAutomatedBuild - Creates an automated build.
+func (d *DockerApi) CreateAutomatedBuild(username, name string, details map[string]string) error {
+	if username == "" {
+		return fmt.Errorf("no user given")
+	}
+	if name == "" {
+		return fmt.Errorf("no image name given")
+	}
+	username = strings.ToLower(username)
+	name = strings.ToLower(name)
+	pth := d.getRoute(fmt.Sprintf("repositories/%s/%s/autobuild/", username, name))
+	data := map[string]interface{}{
+		"name":                name,
+		"namespace":           username,
+		"active":              true,
+		"dockerhub_repo_name": fmt.Sprintf("%s/%s", username, name),
+		"is_private":          false,
+	}
+	//Fill details
+	for k, v := range details {
+		data[k] = v
+	}
+	r, err := requests.Post(d.client, pth, data, d.token)
+	if err != nil {
+		log.Error(err)
+		return nil
+	}
+	log.Print(r)
+	return nil
+}
+
+//CreateRepository creates a repository
+func (d *DockerApi) CreateRepository(username, name string, isPrivate bool, desc, fullDesc string) error {
+	if username == "" {
+		return fmt.Errorf("no user given")
+	}
+	if name == "" {
+		return fmt.Errorf("no image name given")
+	}
+	username = strings.ToLower(username)
+	pth := d.getRoute("repositories")
+	data := map[string]interface{}{
+		"name":             name,
+		"namespace":        username,
+		"is_private":       isPrivate,
+		"description":      desc,
+		"full_description": fullDesc,
+	}
+	r, err := requests.Post(d.client, pth, data, d.token)
+	if err != nil {
+		log.Error(err)
+		return nil
+	}
+	log.Print(r)
+	return nil
+}
+
+//CreateWebhook Creates a webhook for the given username and repository.
+func (d *DockerApi) CreateWebhook(username, name, webhookName string) error {
+	if username == "" {
+		return fmt.Errorf("no user given")
+	}
+	if name == "" {
+		return fmt.Errorf("no image name given")
+	}
+	if webhookName == "" {
+		return fmt.Errorf("no webhookName given")
+	}
+	username = strings.ToLower(username)
+	pth := d.getRoute(fmt.Sprintf("repositories/%s/%s/webhooks", username, name))
+	data := map[string]string{
+		"name": webhookName,
+	}
+	r, err := requests.Post(d.client, pth, data, d.token)
+	if err != nil {
+		log.Error(err)
+		return nil
+	}
+	log.Print(r)
+	return nil
+}
+
+func (d *DockerApi) CreateWebhookHook(username, name, webhookId, url string) error {
+	if username == "" {
+		return fmt.Errorf("no user given")
+	}
+	if name == "" {
+		return fmt.Errorf("no image name given")
+	}
+	if webhookId == "" {
+		return fmt.Errorf("no webhookId given")
+	}
+	username = strings.ToLower(username)
+	pth := d.getRoute(fmt.Sprintf("repositories/%s/%s/webhooks/%s/hooks", username, name, webhookId))
+	data := map[string]string{
+		"hook_url": url,
+	}
+	r, err := requests.Post(d.client, pth, data, d.token)
+	if err != nil {
+		log.Error(err)
+		return nil
+	}
+	log.Print(r)
+	return nil
+}
+
+//DeleteBuildLink Deletes a build link for a given repository.
+func (d *DockerApi) DeleteBuildLink(username, name, id string) error {
+	if username == "" {
+		return fmt.Errorf("no user given")
+	}
+	if name == "" {
+		return fmt.Errorf("no image name given")
+	}
+	username = strings.ToLower(username)
+	pth := d.getRoute(fmt.Sprintf("repositories/%s/%s/links/%s", username, name, id))
+	r, err := requests.Delete(d.client, pth, d.token)
+	if err != nil {
+		log.Error(err)
+		return nil
+	}
+	log.Print(r)
+	return nil
+}
+
+//DeleteBuildTag Deletes a build tag for a given repository.
+func (d *DockerApi) DeleteBuildTag(username, name, id string) error {
+	if username == "" {
+		return fmt.Errorf("no user given")
+	}
+	if name == "" {
+		return fmt.Errorf("no image name given")
+	}
+	if id == "" {
+		return fmt.Errorf("no tag id given")
+	}
+	username = strings.ToLower(username)
+	pth := d.getRoute(fmt.Sprintf("repositories/%s/%s/autobuild/tags/%s", username, name, id))
+	r, err := requests.Delete(d.client, pth, d.token)
+	if err != nil {
+		log.Error(err)
+		return nil
+	}
+	log.Print(r)
+	return nil
+}
+
+//DeleteCollaborator - Deletes a build tag for a given repository.
+func (d *DockerApi) DeleteCollaborator(username, name, collaborator string) error {
+	if username == "" {
+		return fmt.Errorf("no user given")
+	}
+	if name == "" {
+		return fmt.Errorf("no image name given")
+	}
+	if collaborator == "" {
+		return fmt.Errorf("no collaborator username given")
+	}
+	username = strings.ToLower(username)
+	pth := d.getRoute(fmt.Sprintf("repositories/%s/%s/collaborators/%s", username, name, collaborator))
+	r, err := requests.Delete(d.client, pth, d.token)
+	if err != nil {
+		log.Error(err)
+		return nil
+	}
+	log.Print(r)
+	return nil
+}
+
+//DeleteRepository Deletes a repository.
+func (d *DockerApi) DeleteRepository(username, name string) error {
+	if username == "" {
+		return fmt.Errorf("no user given")
+	}
+	if name == "" {
+		return fmt.Errorf("no image name given")
+	}
+	username = strings.ToLower(username)
+	pth := d.getRoute(fmt.Sprintf("repositories/%s/%s", username, name))
+	r, err := requests.Delete(d.client, pth, d.token)
+	if err != nil {
+		log.Error(err)
+		return nil
+	}
+	log.Print(r)
+	return nil
+}
+
+//DeleteTag - Deletes a tag for the given username and repository.
+func (d *DockerApi) DeleteTag(username, name, tag string) error {
+	if username == "" {
+		return fmt.Errorf("no user given")
+	}
+	if name == "" {
+		return fmt.Errorf("no image name given")
+	}
+	if tag == "" {
+		return fmt.Errorf("no tag name given")
+	}
+	username = strings.ToLower(username)
+	pth := d.getRoute(fmt.Sprintf("repositories/%s/%s/tags/%s", username, name, tag))
+	r, err := requests.Delete(d.client, pth, d.token)
+	if err != nil {
+		log.Error(err)
+		return nil
+	}
+	log.Print(r)
+	return nil
+}
+
+func (d *DockerApi) DeleteWebhook(username, name, webhookId string) error {
+	if username == "" {
+		return fmt.Errorf("no user given")
+	}
+	if name == "" {
+		return fmt.Errorf("no image name given")
+	}
+	if webhookId == "" {
+		return fmt.Errorf("no webhookId given")
+	}
+	username = strings.ToLower(username)
+	pth := d.getRoute(fmt.Sprintf("repositories/%s/%s/webhooks/%s", username, name, webhookId))
+	r, err := requests.Delete(d.client, pth, d.token)
+	if err != nil {
+		log.Error(err)
+		return nil
+	}
+	log.Print(r)
+	return nil
+}
+
+//GetRegistrySettings gets the settings for the current logged in user containing information about the number of private repositories used/available.
+func (d *DockerApi) GetRegistrySettings(username string) error {
+	if username == "" {
+		return fmt.Errorf("no user given")
+	}
+	username = strings.ToLower(username)
+	pth := d.getRoute(fmt.Sprintf("users/%s/registry-settings", username))
+	r, err := requests.Get(d.client, pth, d.token)
+	if err != nil {
+		log.Error(err)
+		return nil
+	}
+	log.Print(r)
+	return nil
 }
 
 //TODO Creates a build tag for a given repository.
