@@ -40,10 +40,10 @@ func Post(client *http.Client, route string, objData interface{}, token string) 
 		return nil, err
 	}
 	defer res.Body.Close()
-	if res.StatusCode != http.StatusOK {
-		return nil, errors.New(strconv.Itoa(res.StatusCode))
-	}
 	body, err := ioutil.ReadAll(res.Body)
+	if res.StatusCode != http.StatusOK {
+		return body, errors.New(strconv.Itoa(res.StatusCode))
+	}
 	return body, err
 }
 

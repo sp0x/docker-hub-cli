@@ -715,3 +715,15 @@ func (d *DockerApi) AddCollaborator(username, name, collaborator string) error {
 func (d *DockerApi) GetUsername() string {
 	return d.username
 }
+
+func parseError(errb []byte) string {
+	data := make(map[string]string)
+	err := json.Unmarshal(errb, &data)
+	if err != nil {
+		return "could not parse error"
+	}
+	if _, ok := data["detail"]; !ok {
+		return data["error"]
+	}
+	return data["detail"]
+}

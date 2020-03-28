@@ -72,29 +72,39 @@ func (d *DockerApi) GetWebhooks(username, name string, pageSize, page int) ([]We
 }
 
 //CreateWebhook Creates a webhook for the given username and repository.
-func (d *DockerApi) CreateWebhook(username, name, webhookName string) error {
-	if username == "" {
-		return fmt.Errorf("no user given")
-	}
-	if name == "" {
-		return fmt.Errorf("no image name given")
-	}
-	if webhookName == "" {
-		return fmt.Errorf("no webhookName given")
-	}
-	username = strings.ToLower(username)
-	pth := d.getRoute(fmt.Sprintf("repositories/%s/%s/webhooks", username, name))
-	data := map[string]string{
-		"name": webhookName,
-	}
-	r, err := requests.Post(d.client, pth, data, d.token)
-	if err != nil {
-		log.Error(err)
-		return nil
-	}
-	log.Print(r)
-	return nil
-}
+//Commented for now due to CRSF issues
+//func (d *DockerApi) CreateWebhook(username, name, webhookName string, url string) error {
+//	if username == "" {
+//		return fmt.Errorf("no user given")
+//	}
+//	if name == "" {
+//		return fmt.Errorf("no image name given")
+//	}
+//	if webhookName == "" {
+//		return fmt.Errorf("no webhookName given")
+//	}
+//	username = strings.ToLower(username)
+//	pth := d.getRoute(fmt.Sprintf("repositories/%s/%s/webhooks/", username, name)) + "/"
+//	data := map[string]interface{}{
+//		"name":                  webhookName,
+//		"expect_final_callback": false,
+//		"webhooks": []map[string]string{
+//			{
+//				"name": webhookName, "hook_url": url,
+//			}},
+//		"registry": "registry-1.docker.io",
+//	}
+//	r, err := requests.Post(d.client, pth, data, d.token)
+//	if err != nil {
+//		if r!=nil{
+//			return fmt.Errorf(parseError(r))
+//		}else{
+//			return err
+//		}
+//	}
+//	log.Print(string(r))
+//	return nil
+//}
 
 func (d *DockerApi) CreateWebhookHook(username, name, webhookId, url string) error {
 	if username == "" {
