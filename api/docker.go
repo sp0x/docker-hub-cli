@@ -59,12 +59,12 @@ func joinURL(base string, paths ...string) string {
 	return fmt.Sprintf("%s/%s", strings.TrimRight(base, "/"), strings.TrimLeft(p, "/"))
 }
 
-func (d *DockerApi) SetRepositoryDescription(username, name string, descShort, descLong string) error {
+func (d *DockerApi) SetRepositoryDescription(username, name string, descShort, descLong string) (string, error) {
 	if username == "" {
-		return fmt.Errorf("no user given")
+		return "", fmt.Errorf("no user given")
 	}
 	if name == "" {
-		return fmt.Errorf("no image name given")
+		return "", fmt.Errorf("no image name given")
 	}
 	username = strings.ToLower(username)
 	name = strings.ToLower(name)
@@ -79,10 +79,10 @@ func (d *DockerApi) SetRepositoryDescription(username, name string, descShort, d
 	r, err := requests.Patch(d.client, pth, data, d.token)
 	if err != nil {
 		log.Error(err)
-		return nil
+		return "", nil
 	}
 	log.Print(string(r))
-	return nil
+	return "", nil
 }
 
 func (d *DockerApi) SetRepositoryPrivacy(username, name string, isPrivate bool) error {

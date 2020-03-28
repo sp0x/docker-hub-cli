@@ -2,7 +2,6 @@ package api
 
 import (
 	"fmt"
-	"log"
 	"regexp"
 	"sort"
 	"strings"
@@ -71,7 +70,6 @@ func getMarkdownLinks(strMarkdown string) []NamedLink {
 	matches := rx.FindAllStringSubmatch(strMarkdown, -1)
 	var output []NamedLink
 	for _, m := range matches {
-		log.Print(m)
 		output = append(output, NamedLink{m[1], m[2]})
 	}
 	return output
