@@ -84,6 +84,16 @@ func main() {
 	//	fmt.Printf("Couldn't set webhook's url: %v", err)
 	//	return
 	//}
+	//_, err = dapi.CreateOwnRepository("testing-repo", false, "Testing repo", "#Testing repo")
+	//if err != nil{
+	//	fmt.Printf("Could not create  repository: %v", err)
+	//	return
+	//}
+	//err = dapi.DeleteOwnRepository("testing-repo")
+	//if err != nil{
+	//	fmt.Printf("Could not delete repository: %v", err)
+	//	return
+	//}
 
 	repoLink := repo.GetGitRepo()
 	log.Print(repoLink)

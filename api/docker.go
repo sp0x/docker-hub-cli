@@ -467,16 +467,23 @@ func (d *DockerApi) CreateAutomatedBuild(username, name string, details map[stri
 	return nil
 }
 
+func (d *DockerApi) CreateOwnRepository(name string, isPrivate bool, desc, fullDesc string) (*Repository, error) {
+	if d.username == "" {
+		return nil, fmt.Errorf("user not authenticated")
+	}
+	return d.CreateRepository(d.username, name, isPrivate, desc, fullDesc)
+}
+
 //CreateRepository creates a repository
-func (d *DockerApi) CreateRepository(username, name string, isPrivate bool, desc, fullDesc string) error {
+func (d *DockerApi) CreateRepository(username, name string, isPrivate bool, desc, fullDesc string) (*Repository, error) {
 	if username == "" {
-		return fmt.Errorf("no user given")
+		return nil, fmt.Errorf("no user given")
 	}
 	if name == "" {
-		return fmt.Errorf("no image name given")
+		return nil, fmt.Errorf("no image name given")
 	}
 	username = strings.ToLower(username)
-	pth := d.getRoute("repositories")
+	pth := d.getRoute("repositories") + "/"
 	data := map[string]interface{}{
 		"name":             name,
 		"namespace":        username,
@@ -486,11 +493,18 @@ func (d *DockerApi) CreateRepository(username, name string, isPrivate bool, desc
 	}
 	r, err := requests.Post(d.client, pth, data, d.token)
 	if err != nil {
-		log.Error(err)
-		return nil
+		if r != nil {
+			return nil, fmt.Errorf(parseError(r))
+		} else {
+			return nil, err
+		}
 	}
-	log.Print(r)
-	return nil
+	var repo Repository
+	err = json.Unmarshal(r, &repo)
+	if err != nil {
+		return nil, err
+	}
+	return &repo, nil
 }
 
 //DeleteBuildLink Deletes a build link for a given repository.
@@ -556,6 +570,13 @@ func (d *DockerApi) DeleteCollaborator(username, name, collaborator string) erro
 	return nil
 }
 
+func (d *DockerApi) DeleteOwnRepository(name string) error {
+	if d.username == "" {
+		return fmt.Errorf("user not authenticated")
+	}
+	return d.DeleteRepository(d.username, name)
+}
+
 //DeleteRepository Deletes a repository.
 func (d *DockerApi) DeleteRepository(username, name string) error {
 	if username == "" {
@@ -565,13 +586,11 @@ func (d *DockerApi) DeleteRepository(username, name string) error {
 		return fmt.Errorf("no image name given")
 	}
 	username = strings.ToLower(username)
-	pth := d.getRoute(fmt.Sprintf("repositories/%s/%s", username, name))
-	r, err := requests.Delete(d.client, pth, d.token)
+	pth := d.getRoute(fmt.Sprintf("repositories/%s/%s", username, name)) + "/"
+	_, err := requests.Delete(d.client, pth, d.token)
 	if err != nil {
-		log.Error(err)
-		return nil
+		return err
 	}
-	log.Print(r)
 	return nil
 }
 
