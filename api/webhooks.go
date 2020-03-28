@@ -3,23 +3,34 @@ package api
 import (
 	"encoding/json"
 	"fmt"
-	log "github.com/sirupsen/logrus"
 	"github.com/sp0x/docker-hub-cli/requests"
 	"strings"
 	"time"
 )
 
 type Webhook struct {
-	Id                  *int        `json:"id"`
-	Name                string      `json:"name"`
-	Active              *bool       `json:"active"`
-	ExpectFinalCallback *bool       `json:"expect_final_callback"`
-	Creator             *string     `json:"creator"`
-	Hooks               interface{} `json:"hooks"`
-	HookUrl             string      `json:"hook_url"`
-	Created             *time.Time  `json:"created"`
-	LastUpdated         *time.Time  `json:"last_updated"`
-	LastUpdater         *string     `json:"last_updater"`
+	Id                  *int         `json:"id"`
+	Name                string       `json:"name"`
+	Active              *bool        `json:"active"`
+	ExpectFinalCallback *bool        `json:"expect_final_callback"`
+	Creator             *string      `json:"creator"`
+	Hooks               []WebhookUrl `json:"hooks"`
+	HookUrl             *string      `json:"hook_url"`
+	Created             *time.Time   `json:"created"`
+	LastUpdated         *time.Time   `json:"last_updated"`
+	LastUpdater         *string      `json:"last_updater"`
+}
+
+type WebhookUrl struct {
+	Name string `json:"name"`
+	Url  string `json:"hook_url"`
+}
+
+func (wh *Webhook) GetWebhookUrl() *string {
+	if wh.Hooks != nil && len(wh.Hooks) > 0 {
+		return &wh.Hooks[0].Url
+	}
+	return wh.HookUrl
 }
 
 //DeleteAllWebhooks deletes all webhooks for a given repository
@@ -96,7 +107,6 @@ func (d *DockerApi) GetWebhooks(username, name string, pageSize, page int) ([]We
 }
 
 //CreateWebhook Creates a webhook for the given username and repository.
-//Commented for now due to CRSF issues
 func (d *DockerApi) CreateWebhook(username, name, webhookName string, url string) (*Webhook, error) {
 	if username == "" {
 		return nil, fmt.Errorf("no user given")
@@ -108,7 +118,7 @@ func (d *DockerApi) CreateWebhook(username, name, webhookName string, url string
 		return nil, fmt.Errorf("no webhookName given")
 	}
 	username = strings.ToLower(username)
-	pth := d.getRoute(fmt.Sprintf("repositories/%s/%s/webhooks/", username, name)) + "/"
+	pth := d.getRoute(fmt.Sprintf("repositories/%s/%s/webhook_pipeline/", username, name)) + "/"
 	data := map[string]interface{}{
 		"name":                  webhookName,
 		"expect_final_callback": false,
@@ -134,26 +144,30 @@ func (d *DockerApi) CreateWebhook(username, name, webhookName string, url string
 	return &hook, nil
 }
 
-func (d *DockerApi) CreateWebhookHook(username, name, webhookId, url string) error {
-	if username == "" {
-		return fmt.Errorf("no user given")
-	}
-	if name == "" {
-		return fmt.Errorf("no image name given")
-	}
-	if webhookId == "" {
-		return fmt.Errorf("no webhookId given")
-	}
-	username = strings.ToLower(username)
-	pth := d.getRoute(fmt.Sprintf("repositories/%s/%s/webhooks/%s/hooks", username, name, webhookId))
-	data := map[string]string{
-		"hook_url": url,
-	}
-	r, err := requests.Post(d.client, pth, data, d.token)
-	if err != nil {
-		log.Error(err)
-		return nil
-	}
-	log.Print(r)
-	return nil
-}
+//Outdated
+//func (d *DockerApi) CreateWebhookHook(username, name, webhookId, url string) error {
+//	if username == "" {
+//		return fmt.Errorf("no user given")
+//	}
+//	if name == "" {
+//		return fmt.Errorf("no image name given")
+//	}
+//	if webhookId == "" {
+//		return fmt.Errorf("no webhookId given")
+//	}
+//	username = strings.ToLower(username)
+//	pth := d.getRoute(fmt.Sprintf("repositories/%s/%s/webhooks/%s/hooks", username, name, webhookId)) + "/"
+//	data := map[string]string{
+//		"hook_url": url,
+//	}
+//	r, err := requests.Post(d.client, pth, data, d.token)
+//	if err != nil {
+//		if r != nil {
+//			return fmt.Errorf(parseError(r))
+//		} else {
+//			return err
+//		}
+//	}
+//	log.Print(r)
+//	return nil
+//}

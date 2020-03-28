@@ -78,6 +78,13 @@ func main() {
 	//	fmt.Printf("Couldn't set repository description: %v", err)
 	//	return
 	//}
+	//dapi.DeleteAllWebhooks(dapi.GetUsername(), "nginx-proxy")
+	//_, err = dapi.CreateWebhook(dapi.GetUsername(), "nginx-proxy", "basic2", "https://google.com")
+	//if err != nil {
+	//	fmt.Printf("Couldn't set webhook's url: %v", err)
+	//	return
+	//}
+
 	repoLink := repo.GetGitRepo()
 	log.Print(repoLink)
 
