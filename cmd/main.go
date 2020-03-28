@@ -42,10 +42,16 @@ func main() {
 
 	repo, err := dapi.GetRepository("", "nginx")
 	if err != nil {
-		fmt.Printf("Couldn't get repository %v", err)
+		fmt.Printf("Couldn't get repository: %v", err)
 		return
 	}
-	log.Print(repo)
+	//log.Print(repo)
+	tags, err := dapi.GetTags("", "nginx", 0, 0)
+	if err != nil {
+		fmt.Printf("Couldn't get tags for repo: %v", err)
+		return
+	}
+	log.Print(tags)
 	repoLink := repo.GetGitRepo()
 	log.Print(repoLink)
 

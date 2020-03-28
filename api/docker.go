@@ -42,9 +42,11 @@ type DockerApi struct {
 }
 
 type SearchResult struct {
-	Count    int         `json:"count"`
-	Next     interface{} `json:"next"`
-	Previous interface{} `json:"previous"`
+	Count int `json:"count"`
+	//An url to the next search page
+	Next *string `json:"next"`
+	//An url to the previous search page
+	Previous *string `json:"previous"`
 	Results  json.RawMessage
 }
 
@@ -295,7 +297,7 @@ func (d *DockerApi) GetComments(username, name string, pageSize int, page int) e
 }
 
 //TODO Gets the tags for a repository
-func (d *DockerApi) GetTags(username, name string, pageSize, page int) error {
+func (d *DockerApi) GetTags(username, name string, pageSize, page int) ([]Tag, error) {
 	if username != "" && name == "" {
 		name = username
 		username = "library "
@@ -304,13 +306,28 @@ func (d *DockerApi) GetTags(username, name string, pageSize, page int) error {
 		username = "library"
 	}
 	username = strings.ToLower(username)
+	if pageSize == 0 {
+		pageSize = 100
+	}
+	if page < 1 {
+		page = 1
+	}
 	pth := d.getRoute(fmt.Sprintf("repositories/%s/%s/tags?page_size=%v&page=%v", username, name, pageSize, page))
 	r, err := requests.Get(d.client, pth, d.token)
 	if err != nil {
-		return nil
+		return nil, err
 	}
-	log.Print(string(r))
-	return nil
+	var searchRes SearchResult
+	err = json.Unmarshal(r, &searchRes)
+	if err != nil {
+		return nil, err
+	}
+	var tags []Tag
+	err = json.Unmarshal(searchRes.Results, &tags)
+	if err != nil {
+		return nil, err
+	}
+	return tags, nil
 }
 
 //GetMyRepository gets details about a user owned repository
