@@ -41,7 +41,7 @@ func Post(client *http.Client, route string, objData interface{}, token string) 
 	}
 	defer res.Body.Close()
 	body, err := ioutil.ReadAll(res.Body)
-	if res.StatusCode != http.StatusOK {
+	if res.StatusCode >= 400 {
 		return body, errors.New(strconv.Itoa(res.StatusCode))
 	}
 	return body, err
@@ -66,10 +66,10 @@ func Put(client *http.Client, route string, objData interface{}, token string) (
 		return nil, err
 	}
 	defer res.Body.Close()
-	if res.StatusCode != http.StatusOK {
-		return nil, errors.New(strconv.Itoa(res.StatusCode))
-	}
 	body, err := ioutil.ReadAll(res.Body)
+	if res.StatusCode >= 400 {
+		return body, errors.New(strconv.Itoa(res.StatusCode))
+	}
 	return body, err
 }
 
@@ -92,10 +92,10 @@ func Patch(client *http.Client, route string, objData interface{}, token string)
 		return nil, err
 	}
 	defer res.Body.Close()
-	if res.StatusCode != http.StatusOK {
-		return nil, errors.New(strconv.Itoa(res.StatusCode))
-	}
 	body, err := ioutil.ReadAll(res.Body)
+	if res.StatusCode >= 400 {
+		return body, errors.New(strconv.Itoa(res.StatusCode))
+	}
 	return body, err
 }
 
@@ -114,8 +114,8 @@ func Get(client *http.Client, route string, token string) ([]byte, error) {
 	}
 	defer res.Body.Close()
 	body, err := ioutil.ReadAll(res.Body)
-	if res.StatusCode != http.StatusOK {
-		return nil, errors.New(strconv.Itoa(res.StatusCode))
+	if res.StatusCode >= 400 {
+		return body, errors.New(strconv.Itoa(res.StatusCode))
 	}
 	return body, err
 }
@@ -135,8 +135,8 @@ func Delete(client *http.Client, route string, token string) ([]byte, error) {
 	}
 	defer res.Body.Close()
 	body, err := ioutil.ReadAll(res.Body)
-	if res.StatusCode != http.StatusOK {
-		return nil, errors.New(strconv.Itoa(res.StatusCode))
+	if res.StatusCode >= 400 {
+		return body, errors.New(strconv.Itoa(res.StatusCode))
 	}
 	return body, err
 }

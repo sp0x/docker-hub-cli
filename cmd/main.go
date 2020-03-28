@@ -57,12 +57,27 @@ func main() {
 	//	fmt.Printf("Couldn't get webhooks for repo: %v", err)
 	//}
 	//log.Print(webhooks)
-	//err = dapi.CreateWebhook(dapi.GetUsername(), "nginx-proxy", "hook2", "https://google.com/")
+	//hook, err := dapi.CreateWebhook(dapi.GetUsername(), "nginx-proxy", "hook3", "https://google.com/")
 	//if err != nil{
 	//	fmt.Printf("Couldn't create webhook for repo: %v", err)
 	//	return
 	//}
-
+	//log.Print(hook)
+	//err = dapi.DeleteWebhook(dapi.GetUsername(), "nginx-proxy", "hook2")
+	//if err != nil {
+	//	fmt.Printf("Couldn't delete webhook for repo: %v", err)
+	//	return
+	//}
+	//err = dapi.DeleteAllWebhooks(dapi.GetUsername(), "nginx-proxy")
+	//if err != nil{
+	//	fmt.Printf("Couldn't delete all webhooks: %v", err)
+	//	return
+	//}
+	//err = dapi.SetRepositoryDescription(dapi.GetUsername(),"nginx-proxy","A fork of nginx-proxy", "#A multi-arch fork of nginx-proxy")
+	//if err != nil {
+	//	fmt.Printf("Couldn't set repository description: %v", err)
+	//	return
+	//}
 	repoLink := repo.GetGitRepo()
 	log.Print(repoLink)
 

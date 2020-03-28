@@ -23,10 +23,10 @@ func NewApi() *DockerApi {
 	d.client = &http.Client{
 		Timeout:   time.Second * 10,
 		Transport: transport,
-		Jar:       cookies,
+		//Jar:       cookies, //Commented because this causes CSRF issues if enabled
 	}
+	//To keep a session
 	d.cookieJar = cookies
-
 	d.apiVersion = version
 	d.routeBase = fmt.Sprintf("https://hub.docker.com/v%s", version)
 	return d
@@ -59,16 +59,16 @@ func joinURL(base string, paths ...string) string {
 	return fmt.Sprintf("%s/%s", strings.TrimRight(base, "/"), strings.TrimLeft(p, "/"))
 }
 
-func (d *DockerApi) SetRepositoryDescription(username, name string, descShort, descLong string) (string, error) {
+func (d *DockerApi) SetRepositoryDescription(username, name string, descShort, descLong string) error {
 	if username == "" {
-		return "", fmt.Errorf("no user given")
+		return fmt.Errorf("no user given")
 	}
 	if name == "" {
-		return "", fmt.Errorf("no image name given")
+		return fmt.Errorf("no image name given")
 	}
 	username = strings.ToLower(username)
 	name = strings.ToLower(name)
-	pth := d.getRoute(fmt.Sprintf("repositories/%s/%s", username, name))
+	pth := d.getRoute(fmt.Sprintf("repositories/%s/%s", username, name)) + "/"
 	data := map[string]string{}
 	if descLong != "" {
 		data["full_description"] = descLong
@@ -78,11 +78,13 @@ func (d *DockerApi) SetRepositoryDescription(username, name string, descShort, d
 	}
 	r, err := requests.Patch(d.client, pth, data, d.token)
 	if err != nil {
-		log.Error(err)
-		return "", nil
+		if r != nil {
+			return fmt.Errorf(parseError(r))
+		} else {
+			return err
+		}
 	}
-	log.Print(string(r))
-	return "", nil
+	return nil
 }
 
 func (d *DockerApi) SetRepositoryPrivacy(username, name string, isPrivate bool) error {
@@ -716,14 +718,26 @@ func (d *DockerApi) GetUsername() string {
 	return d.username
 }
 
+type dockerError struct {
+	Error  *string  `json:"error"`
+	Name   []string `name:"name"`
+	Detail *string  `json:"detail"`
+}
+
 func parseError(errb []byte) string {
-	data := make(map[string]string)
+	var data dockerError
 	err := json.Unmarshal(errb, &data)
 	if err != nil {
 		return "could not parse error"
 	}
-	if _, ok := data["detail"]; !ok {
-		return data["error"]
+	if data.Error != nil {
+		return *data.Error
 	}
-	return data["detail"]
+	if data.Detail != nil {
+		return *data.Detail
+	}
+	if len(data.Name) > 0 {
+		return strings.Join(data.Name, "\n")
+	}
+	return "unresolved error"
 }

@@ -10,30 +10,54 @@ import (
 )
 
 type Webhook struct {
-	Name        string    `json:"name"`
-	HookUrl     string    `json:"hook_url"`
-	Created     time.Time `json:"created"`
-	LastUpdated time.Time `json:"last_updated"`
+	Id                  *int        `json:"id"`
+	Name                string      `json:"name"`
+	Active              *bool       `json:"active"`
+	ExpectFinalCallback *bool       `json:"expect_final_callback"`
+	Creator             *string     `json:"creator"`
+	Hooks               interface{} `json:"hooks"`
+	HookUrl             string      `json:"hook_url"`
+	Created             *time.Time  `json:"created"`
+	LastUpdated         *time.Time  `json:"last_updated"`
+	LastUpdater         *string     `json:"last_updater"`
 }
 
-func (d *DockerApi) DeleteWebhook(username, name, webhookId string) error {
+//DeleteAllWebhooks deletes all webhooks for a given repository
+func (d *DockerApi) DeleteAllWebhooks(username, name string) error {
+	hooks, err := d.GetWebhooks(username, name, 0, 0)
+	if err != nil {
+		return err
+	}
+	for _, h := range hooks {
+		err := d.DeleteWebhook(username, name, h.Name)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+//DeleteWebhook deletes a webhook
+func (d *DockerApi) DeleteWebhook(username, name, webhookName string) error {
 	if username == "" {
 		return fmt.Errorf("no user given")
 	}
 	if name == "" {
 		return fmt.Errorf("no image name given")
 	}
-	if webhookId == "" {
-		return fmt.Errorf("no webhookId given")
+	if webhookName == "" {
+		return fmt.Errorf("no webhookName given")
 	}
 	username = strings.ToLower(username)
-	pth := d.getRoute(fmt.Sprintf("repositories/%s/%s/webhooks/%s", username, name, webhookId))
+	pth := d.getRoute(fmt.Sprintf("repositories/%s/%s/webhook_pipeline/%s/", username, name, webhookName)) + "/"
 	r, err := requests.Delete(d.client, pth, d.token)
 	if err != nil {
-		log.Error(err)
-		return nil
+		if r != nil {
+			return fmt.Errorf(parseError(r))
+		} else {
+			return err
+		}
 	}
-	log.Print(r)
 	return nil
 }
 
@@ -73,38 +97,42 @@ func (d *DockerApi) GetWebhooks(username, name string, pageSize, page int) ([]We
 
 //CreateWebhook Creates a webhook for the given username and repository.
 //Commented for now due to CRSF issues
-//func (d *DockerApi) CreateWebhook(username, name, webhookName string, url string) error {
-//	if username == "" {
-//		return fmt.Errorf("no user given")
-//	}
-//	if name == "" {
-//		return fmt.Errorf("no image name given")
-//	}
-//	if webhookName == "" {
-//		return fmt.Errorf("no webhookName given")
-//	}
-//	username = strings.ToLower(username)
-//	pth := d.getRoute(fmt.Sprintf("repositories/%s/%s/webhooks/", username, name)) + "/"
-//	data := map[string]interface{}{
-//		"name":                  webhookName,
-//		"expect_final_callback": false,
-//		"webhooks": []map[string]string{
-//			{
-//				"name": webhookName, "hook_url": url,
-//			}},
-//		"registry": "registry-1.docker.io",
-//	}
-//	r, err := requests.Post(d.client, pth, data, d.token)
-//	if err != nil {
-//		if r!=nil{
-//			return fmt.Errorf(parseError(r))
-//		}else{
-//			return err
-//		}
-//	}
-//	log.Print(string(r))
-//	return nil
-//}
+func (d *DockerApi) CreateWebhook(username, name, webhookName string, url string) (*Webhook, error) {
+	if username == "" {
+		return nil, fmt.Errorf("no user given")
+	}
+	if name == "" {
+		return nil, fmt.Errorf("no image name given")
+	}
+	if webhookName == "" {
+		return nil, fmt.Errorf("no webhookName given")
+	}
+	username = strings.ToLower(username)
+	pth := d.getRoute(fmt.Sprintf("repositories/%s/%s/webhooks/", username, name)) + "/"
+	data := map[string]interface{}{
+		"name":                  webhookName,
+		"expect_final_callback": false,
+		"webhooks": []map[string]string{
+			{
+				"name": webhookName, "hook_url": url,
+			}},
+		"registry": "registry-1.docker.io",
+	}
+	r, err := requests.Post(d.client, pth, data, d.token)
+	if err != nil {
+		if r != nil {
+			return nil, fmt.Errorf(parseError(r))
+		} else {
+			return nil, err
+		}
+	}
+	var hook Webhook
+	err = json.Unmarshal(r, &hook)
+	if err != nil {
+		return nil, err
+	}
+	return &hook, nil
+}
 
 func (d *DockerApi) CreateWebhookHook(username, name, webhookId, url string) error {
 	if username == "" {
