@@ -1,7 +1,9 @@
 package api
 
 import (
+	"errors"
 	"fmt"
+	"log"
 	"regexp"
 	"sort"
 	"strings"
@@ -124,6 +126,23 @@ func getMostCommonUrl(urls []string, slashCount int) string {
 	}
 	sort.Sort(sort.Reverse(s))
 	return s[0].Key
+}
+
+func (r *Repository) GetTaggedGitRepoLink(dapi *DockerApi, tagName string, exactTagMatch bool) (string, error) {
+	if !stringIsMarkdown(r.FullDescription) {
+		return "", errors.New("description is not in markdown")
+	}
+	tags, err := dapi.GetTags(r.Namespace, r.Name, 0, 0)
+	if err != nil {
+		return "", err
+	}
+	tag := tags.getByName(tagName, exactTagMatch)
+	if tag == nil {
+		return "", errors.New("tag not found")
+	}
+	mlinks := getMarkdownLinks(r.FullDescription)
+	log.Print(mlinks)
+	return "", nil
 }
 
 func (r *Repository) GetGitRepo() string {

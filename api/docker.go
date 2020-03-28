@@ -299,7 +299,7 @@ func (d *DockerApi) GetComments(username, name string, pageSize int, page int) e
 }
 
 //TODO Gets the tags for a repository
-func (d *DockerApi) GetTags(username, name string, pageSize, page int) ([]Tag, error) {
+func (d *DockerApi) GetTags(username, name string, pageSize, page int) (TagList, error) {
 	if username != "" && name == "" {
 		name = username
 		username = "library "

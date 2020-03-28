@@ -1,6 +1,9 @@
 package api
 
-import "time"
+import (
+	"strings"
+	"time"
+)
 
 type Tag struct {
 	Creator             int           `json:"creator"`
@@ -32,4 +35,21 @@ type TaggedImage struct {
 
 func (t *Tag) String() string {
 	return t.Name
+}
+
+type TagList []Tag
+
+func (tags TagList) getByName(nm string, exactMatch bool) *Tag {
+	for _, tag := range tags {
+		if exactMatch {
+			if tag.Name == nm {
+				return &tag
+			}
+		} else {
+			if strings.Contains(tag.Name, nm) {
+				return &tag
+			}
+		}
+	}
+	return nil
 }
