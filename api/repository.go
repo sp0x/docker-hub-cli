@@ -120,6 +120,7 @@ func getMostCommonUrl(urls []string, slashCount int) string {
 	s := make(PairList, len(freqs))
 	for k, v := range freqs {
 		s[i] = Pair{k, v}
+		i += 1
 	}
 	sort.Sort(sort.Reverse(s))
 	return s[0].Key

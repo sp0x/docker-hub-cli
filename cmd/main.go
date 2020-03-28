@@ -45,6 +45,9 @@ func main() {
 		fmt.Printf("Couldn't get repository: %v", err)
 		return
 	}
+	repoLink := repo.GetGitRepo()
+	log.Print(repoLink)
+
 	//log.Print(repo)
 	//tags, err := dapi.GetTags("", "nginx", 0, 0)
 	//if err != nil {
@@ -94,16 +97,12 @@ func main() {
 	//	fmt.Printf("Could not delete repository: %v", err)
 	//	return
 	//}
-
-	repoLink := repo.GetGitRepo()
-	log.Print(repoLink)
-
-	buildSettings, err := dapi.GetBuildSettings(dapi.GetUsername(), "nginx-proxy")
-	if err != nil {
-		fmt.Printf("Couldn't get build settings")
-		return
-	}
-	log.Print(buildSettings)
+	//buildSettings, err := dapi.GetBuildSettings(dapi.GetUsername(), "nginx-proxy")
+	//if err != nil {
+	//	fmt.Printf("Couldn't get build settings")
+	//	return
+	//}
+	//log.Print(buildSettings)
 
 	err = dapi.Logout()
 	if err != nil {
