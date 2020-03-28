@@ -52,6 +52,11 @@ func main() {
 	//	return
 	//}
 	//log.Print(tags)
+	//webhooks, err := dapi.GetWebhooks(dapi.GetUsername(), "nginx-proxy", 0,0)
+	//if err != nil{
+	//	fmt.Printf("Couldn't get webhooks for repo: %v", err)
+	//}
+	//log.Print(webhooks)
 
 	repoLink := repo.GetGitRepo()
 	log.Print(repoLink)

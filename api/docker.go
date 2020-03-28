@@ -491,55 +491,6 @@ func (d *DockerApi) CreateRepository(username, name string, isPrivate bool, desc
 	return nil
 }
 
-//CreateWebhook Creates a webhook for the given username and repository.
-func (d *DockerApi) CreateWebhook(username, name, webhookName string) error {
-	if username == "" {
-		return fmt.Errorf("no user given")
-	}
-	if name == "" {
-		return fmt.Errorf("no image name given")
-	}
-	if webhookName == "" {
-		return fmt.Errorf("no webhookName given")
-	}
-	username = strings.ToLower(username)
-	pth := d.getRoute(fmt.Sprintf("repositories/%s/%s/webhooks", username, name))
-	data := map[string]string{
-		"name": webhookName,
-	}
-	r, err := requests.Post(d.client, pth, data, d.token)
-	if err != nil {
-		log.Error(err)
-		return nil
-	}
-	log.Print(r)
-	return nil
-}
-
-func (d *DockerApi) CreateWebhookHook(username, name, webhookId, url string) error {
-	if username == "" {
-		return fmt.Errorf("no user given")
-	}
-	if name == "" {
-		return fmt.Errorf("no image name given")
-	}
-	if webhookId == "" {
-		return fmt.Errorf("no webhookId given")
-	}
-	username = strings.ToLower(username)
-	pth := d.getRoute(fmt.Sprintf("repositories/%s/%s/webhooks/%s/hooks", username, name, webhookId))
-	data := map[string]string{
-		"hook_url": url,
-	}
-	r, err := requests.Post(d.client, pth, data, d.token)
-	if err != nil {
-		log.Error(err)
-		return nil
-	}
-	log.Print(r)
-	return nil
-}
-
 //DeleteBuildLink Deletes a build link for a given repository.
 func (d *DockerApi) DeleteBuildLink(username, name, id string) error {
 	if username == "" {
@@ -644,27 +595,6 @@ func (d *DockerApi) DeleteTag(username, name, tag string) error {
 	return nil
 }
 
-func (d *DockerApi) DeleteWebhook(username, name, webhookId string) error {
-	if username == "" {
-		return fmt.Errorf("no user given")
-	}
-	if name == "" {
-		return fmt.Errorf("no image name given")
-	}
-	if webhookId == "" {
-		return fmt.Errorf("no webhookId given")
-	}
-	username = strings.ToLower(username)
-	pth := d.getRoute(fmt.Sprintf("repositories/%s/%s/webhooks/%s", username, name, webhookId))
-	r, err := requests.Delete(d.client, pth, d.token)
-	if err != nil {
-		log.Error(err)
-		return nil
-	}
-	log.Print(r)
-	return nil
-}
-
 //GetRegistrySettings gets the settings for the current logged in user containing information about the number of private repositories used/available.
 func (d *DockerApi) GetRegistrySettings(username string) error {
 	if username == "" {
@@ -757,26 +687,6 @@ func (d *DockerApi) GetUser(username string) (*User, error) {
 	var user User
 	_ = json.Unmarshal(r, &user)
 	return &user, nil
-}
-
-//GetWebhooks Gets the webhooks for a repository you own.
-func (d *DockerApi) GetWebhooks(username, name string, pageSize, page int) error {
-	if username == "" {
-		return fmt.Errorf("no user given")
-	}
-	if name == "" {
-		return fmt.Errorf("no image name given")
-	}
-	username = strings.ToLower(username)
-	name = strings.ToLower(name)
-	pth := d.getRoute(fmt.Sprintf("repositories/%s/%s/repositories/webhooks?page_size=%v&page=%v", username, name, pageSize, page))
-	r, err := requests.Get(d.client, pth, d.token)
-	if err != nil {
-		log.Error(err)
-		return nil
-	}
-	log.Print(r)
-	return nil
 }
 
 //AddCollaborator adds a collaborator to an image

@@ -1,0 +1,121 @@
+package api
+
+import (
+	"encoding/json"
+	"fmt"
+	log "github.com/sirupsen/logrus"
+	"github.com/sp0x/docker-hub-cli/requests"
+	"strings"
+	"time"
+)
+
+type Webhook struct {
+	Name        string    `json:"name"`
+	HookUrl     string    `json:"hook_url"`
+	Created     time.Time `json:"created"`
+	LastUpdated time.Time `json:"last_updated"`
+}
+
+func (d *DockerApi) DeleteWebhook(username, name, webhookId string) error {
+	if username == "" {
+		return fmt.Errorf("no user given")
+	}
+	if name == "" {
+		return fmt.Errorf("no image name given")
+	}
+	if webhookId == "" {
+		return fmt.Errorf("no webhookId given")
+	}
+	username = strings.ToLower(username)
+	pth := d.getRoute(fmt.Sprintf("repositories/%s/%s/webhooks/%s", username, name, webhookId))
+	r, err := requests.Delete(d.client, pth, d.token)
+	if err != nil {
+		log.Error(err)
+		return nil
+	}
+	log.Print(r)
+	return nil
+}
+
+//GetWebhooks Gets the webhooks for a repository you own.
+func (d *DockerApi) GetWebhooks(username, name string, pageSize, page int) ([]Webhook, error) {
+	if username == "" || username == "_" {
+		username = "library"
+	}
+	if name == "" {
+		return nil, fmt.Errorf("no image name given")
+	}
+	username = strings.ToLower(username)
+	name = strings.ToLower(name)
+	if page < 1 {
+		page = 1
+	}
+	if pageSize <= 0 {
+		pageSize = 100
+	}
+	pth := d.getRoute(fmt.Sprintf("repositories/%s/%s/webhook_pipeline?page_size=%v&page=%v", username, name, pageSize, page))
+	r, err := requests.Get(d.client, pth, d.token)
+	if err != nil {
+		return nil, err
+	}
+	var searchRes SearchResult
+	err = json.Unmarshal(r, &searchRes)
+	if err != nil {
+		return nil, err
+	}
+	var webhooks []Webhook
+	err = json.Unmarshal(searchRes.Results, &webhooks)
+	if err != nil {
+		return nil, err
+	}
+	return webhooks, nil
+}
+
+//CreateWebhook Creates a webhook for the given username and repository.
+func (d *DockerApi) CreateWebhook(username, name, webhookName string) error {
+	if username == "" {
+		return fmt.Errorf("no user given")
+	}
+	if name == "" {
+		return fmt.Errorf("no image name given")
+	}
+	if webhookName == "" {
+		return fmt.Errorf("no webhookName given")
+	}
+	username = strings.ToLower(username)
+	pth := d.getRoute(fmt.Sprintf("repositories/%s/%s/webhooks", username, name))
+	data := map[string]string{
+		"name": webhookName,
+	}
+	r, err := requests.Post(d.client, pth, data, d.token)
+	if err != nil {
+		log.Error(err)
+		return nil
+	}
+	log.Print(r)
+	return nil
+}
+
+func (d *DockerApi) CreateWebhookHook(username, name, webhookId, url string) error {
+	if username == "" {
+		return fmt.Errorf("no user given")
+	}
+	if name == "" {
+		return fmt.Errorf("no image name given")
+	}
+	if webhookId == "" {
+		return fmt.Errorf("no webhookId given")
+	}
+	username = strings.ToLower(username)
+	pth := d.getRoute(fmt.Sprintf("repositories/%s/%s/webhooks/%s/hooks", username, name, webhookId))
+	data := map[string]string{
+		"hook_url": url,
+	}
+	r, err := requests.Post(d.client, pth, data, d.token)
+	if err != nil {
+		log.Error(err)
+		return nil
+	}
+	log.Print(r)
+	return nil
+}
