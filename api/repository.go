@@ -3,7 +3,6 @@ package api
 import (
 	"errors"
 	"fmt"
-	"log"
 	"regexp"
 	"sort"
 	"strings"
@@ -55,7 +54,7 @@ func (r *Repository) GetLinks() []string {
 }
 
 func (r *Repository) GetMarkdownLinks() []NamedLink {
-	return getMarkdownLinks(r.FullDescription)
+	return getMarkdownLinks(r.FullDescription, nil)
 }
 
 func getLinks(str string) []string {
@@ -67,12 +66,19 @@ func getLinks(str string) []string {
 	return matches
 }
 
-func getMarkdownLinks(strMarkdown string) []NamedLink {
+//Gets all the markdown links from a given text.
+func getMarkdownLinks(strMarkdown string, filter func(link NamedLink) bool) []NamedLink {
 	rx, _ := regexp.Compile("\\[([^]]+)\\]\\((https?://\\S+)\\)")
 	matches := rx.FindAllStringSubmatch(strMarkdown, -1)
 	var output []NamedLink
 	for _, m := range matches {
-		output = append(output, NamedLink{m[1], m[2]})
+		nlink := NamedLink{m[1], m[2]}
+		if filter != nil {
+			if !filter(nlink) {
+				continue
+			}
+		}
+		output = append(output, nlink)
 	}
 	return output
 }
@@ -128,7 +134,8 @@ func getMostCommonUrl(urls []string, slashCount int) string {
 	return s[0].Key
 }
 
-func (r *Repository) GetTaggedGitRepoLink(dapi *DockerApi, tagName string, exactTagMatch bool) (string, error) {
+//GetTaggedDockerfile gets a link to the dockerfile for a given tag.
+func (r *Repository) GetTaggedDockerfile(dapi *DockerApi, tagName string, exactTagMatch bool) (string, error) {
 	if !stringIsMarkdown(r.FullDescription) {
 		return "", errors.New("description is not in markdown")
 	}
@@ -140,9 +147,13 @@ func (r *Repository) GetTaggedGitRepoLink(dapi *DockerApi, tagName string, exact
 	if tag == nil {
 		return "", errors.New("tag not found")
 	}
-	mlinks := getMarkdownLinks(r.FullDescription)
-	log.Print(mlinks)
-	return "", nil
+	mlinks := getMarkdownLinks(r.FullDescription, func(l NamedLink) bool {
+		return strings.HasSuffix(l.Link, "/Dockerfile") && strings.Contains(l.Name, fmt.Sprintf("`%s`", tagName))
+	})
+	if mlinks == nil || len(mlinks) == 0 {
+		return "", errors.New("not found")
+	}
+	return mlinks[0].Link, nil
 }
 
 func (r *Repository) GetGitRepo() string {
@@ -156,7 +167,7 @@ func (r *Repository) GetGitRepoLinks() []string {
 	d := r.FullDescription
 	var matches []string
 	if stringIsMarkdown(d) {
-		links := getMarkdownLinks(d)
+		links := r.GetMarkdownLinks()
 		for _, l := range links {
 			matches = append(matches, l.Link)
 		}

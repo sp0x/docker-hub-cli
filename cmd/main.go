@@ -45,7 +45,7 @@ func main() {
 		fmt.Printf("Couldn't get repository: %v", err)
 		return
 	}
-	alpineLink, err := repo.GetTaggedGitRepoLink(dapi, "alpine", true)
+	alpineLink, err := repo.GetTaggedDockerfile(dapi, "alpine", true)
 	log.Print(alpineLink)
 	repoLink := repo.GetGitRepo()
 	log.Print(repoLink)
