@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	log "github.com/sirupsen/logrus"
 	"github.com/sp0x/docker-hub-cli/api"
 	"os"
 )
@@ -40,17 +39,17 @@ func main() {
 	//}
 	//log.Print(repo)
 
-	repo, err := dapi.GetRepository("", "nginx")
-	if err != nil {
-		fmt.Printf("Couldn't get repository: %v", err)
-		return
-	}
-	alpineLink, err := repo.GetTaggedDockerfile(dapi, "alpine", true)
-	log.Print(alpineLink)
-	directory, err := repo.GetTaggedRepositoryDirectory(dapi, "alpine", true)
-	log.Print(directory)
-	repoLink := repo.GetGitRepo()
-	log.Print(repoLink)
+	//repo, err := dapi.GetRepository("", "nginx")
+	//if err != nil {
+	//	fmt.Printf("Couldn't get repository: %v", err)
+	//	return
+	//}
+	//alpineLink, err := repo.GetTaggedDockerfile(dapi, "alpine", true)
+	//log.Print(alpineLink)
+	//directory, err := repo.GetTaggedRepositoryDirectory(dapi, "alpine", true)
+	//log.Print(directory)
+	//repoLink := repo.GetGitRepo()
+	//log.Print(repoLink)
 
 	//log.Print(repo)
 	//tags, err := dapi.GetTags("", "nginx", 0, 0)
