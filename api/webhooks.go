@@ -143,31 +143,3 @@ func (d *DockerApi) CreateWebhook(username, name, webhookName string, url string
 	}
 	return &hook, nil
 }
-
-//Outdated
-//func (d *DockerApi) CreateWebhookHook(username, name, webhookId, url string) error {
-//	if username == "" {
-//		return fmt.Errorf("no user given")
-//	}
-//	if name == "" {
-//		return fmt.Errorf("no image name given")
-//	}
-//	if webhookId == "" {
-//		return fmt.Errorf("no webhookId given")
-//	}
-//	username = strings.ToLower(username)
-//	pth := d.getRoute(fmt.Sprintf("repositories/%s/%s/webhooks/%s/hooks", username, name, webhookId)) + "/"
-//	data := map[string]string{
-//		"hook_url": url,
-//	}
-//	r, err := requests.Post(d.client, pth, data, d.token)
-//	if err != nil {
-//		if r != nil {
-//			return fmt.Errorf(parseError(r))
-//		} else {
-//			return err
-//		}
-//	}
-//	log.Print(r)
-//	return nil
-//}
