@@ -32,6 +32,11 @@ func NewApi() *DockerApi {
 	return d
 }
 
+func joinURL(base string, paths ...string) string {
+	p := path.Join(paths...)
+	return fmt.Sprintf("%s/%s", strings.TrimRight(base, "/"), strings.TrimLeft(p, "/"))
+}
+
 type DockerApi struct {
 	client     *http.Client
 	apiVersion string
@@ -41,22 +46,8 @@ type DockerApi struct {
 	username   string
 }
 
-type SearchResult struct {
-	Count int `json:"count"`
-	//An url to the next search page
-	Next *string `json:"next"`
-	//An url to the previous search page
-	Previous *string `json:"previous"`
-	Results  json.RawMessage
-}
-
 func (d *DockerApi) getRoute(p string) string {
 	return joinURL(d.routeBase, p)
-}
-
-func joinURL(base string, paths ...string) string {
-	p := path.Join(paths...)
-	return fmt.Sprintf("%s/%s", strings.TrimRight(base, "/"), strings.TrimLeft(p, "/"))
 }
 
 func (d *DockerApi) SetRepositoryDescription(username, name string, descShort, descLong string) error {
@@ -735,28 +726,4 @@ func (d *DockerApi) AddCollaborator(username, name, collaborator string) error {
 
 func (d *DockerApi) GetUsername() string {
 	return d.username
-}
-
-type dockerError struct {
-	Error  *string  `json:"error"`
-	Name   []string `name:"name"`
-	Detail *string  `json:"detail"`
-}
-
-func parseError(errb []byte) string {
-	var data dockerError
-	err := json.Unmarshal(errb, &data)
-	if err != nil {
-		return "could not parse error"
-	}
-	if data.Error != nil {
-		return *data.Error
-	}
-	if data.Detail != nil {
-		return *data.Detail
-	}
-	if len(data.Name) > 0 {
-		return strings.Join(data.Name, "\n")
-	}
-	return "unresolved error"
 }
