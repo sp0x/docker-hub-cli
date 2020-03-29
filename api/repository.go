@@ -3,6 +3,7 @@ package api
 import (
 	"errors"
 	"fmt"
+	"net/url"
 	"regexp"
 	"sort"
 	"strings"
@@ -119,8 +120,8 @@ func (p PairList) Swap(i, j int)      { p[i], p[j] = p[j], p[i] }
 
 func getMostCommonUrl(urls []string, slashCount int) string {
 	freqs := make(map[string]int)
-	for _, url := range urls {
-		parts := strings.SplitN(url, "/", slashCount+1)
+	for _, urlx := range urls {
+		parts := strings.SplitN(urlx, "/", slashCount+1)
 		trimmedUrl := strings.Join(parts[0:slashCount], "/")
 		freqs[trimmedUrl] += 1
 	}
@@ -135,10 +136,12 @@ func getMostCommonUrl(urls []string, slashCount int) string {
 }
 
 //GetTaggedDockerfile gets a link to the dockerfile for a given tag.
+//This works only with repositories that have Markdown descriptions
 func (r *Repository) GetTaggedDockerfile(dapi *DockerApi, tagName string, exactTagMatch bool) (string, error) {
 	if !stringIsMarkdown(r.FullDescription) {
 		return "", errors.New("description is not in markdown")
 	}
+	//Check if there's a tag with that name
 	tags, err := dapi.GetTags(r.Namespace, r.Name, 0, 0)
 	if err != nil {
 		return "", err
@@ -151,15 +154,42 @@ func (r *Repository) GetTaggedDockerfile(dapi *DockerApi, tagName string, exactT
 		return strings.HasSuffix(l.Link, "/Dockerfile") && strings.Contains(l.Name, fmt.Sprintf("`%s`", tagName))
 	})
 	if mlinks == nil || len(mlinks) == 0 {
-		return "", errors.New("not found")
+		return "", errors.New("the repository has no links in it's description")
 	}
 	return mlinks[0].Link, nil
 }
 
+//GetTaggedRepositoryDirectory gets the directory path for a given tag, from a git repository for this repository
+func (r *Repository) GetTaggedRepositoryDirectory(dapi *DockerApi, tagName string, exactTagMatch bool) (string, error) {
+	dockerfile, err := r.GetTaggedDockerfile(dapi, tagName, exactTagMatch)
+	if err != nil {
+		return "", err
+	}
+	//Most times this is the directory of the dockerfile
+	durl, err := url.Parse(dockerfile)
+	if err != nil {
+		return "", err
+	}
+	dflen := len("/Dockerfile")
+	if durl.Path == "" || len(durl.Path) <= dflen {
+		return "", errors.New("bad dockerfile url")
+	}
+	pth := string(durl.Path[0 : len(durl.Path)-dflen])
+	//Github uses urls like /nginxinc/docker-nginx/blob/5c15613519a26c6adc244c24f814a95c786cfbc3/mainline/alpine/Dockerfile
+	if strings.Contains(pth, "/blob/") && durl.Host == "github.com" {
+		pathParts := strings.Split(pth, "/")
+		if len(pathParts) > 5 && pathParts[3] == "blob" {
+			pth = strings.Join(pathParts[:3], "/") + "/" + strings.Join(pathParts[5:], "/")
+		}
+	}
+	return pth, nil
+}
+
+//GetGitRepo gets a link to the git repository for this repository
 func (r *Repository) GetGitRepo() string {
 	validLinks := r.GetGitRepoLinks()
-	url := getMostCommonUrl(validLinks, 5)
-	return url
+	urlx := getMostCommonUrl(validLinks, 5)
+	return urlx
 }
 
 //GetGitRepoLinks gets all the links that are rleated to a github/bitbucket repo

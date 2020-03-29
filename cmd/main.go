@@ -47,6 +47,8 @@ func main() {
 	}
 	alpineLink, err := repo.GetTaggedDockerfile(dapi, "alpine", true)
 	log.Print(alpineLink)
+	directory, err := repo.GetTaggedRepositoryDirectory(dapi, "alpine", true)
+	log.Print(directory)
 	repoLink := repo.GetGitRepo()
 	log.Print(repoLink)
 
