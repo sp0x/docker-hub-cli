@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	log "github.com/sirupsen/logrus"
+	"github.com/sp0x/docker-hub-cli/api"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"golang.org/x/crypto/ssh/terminal"
@@ -43,6 +44,7 @@ func init() {
 				os.Exit(1)
 			}
 
+			var dockerApi = api.NewApi("", "")
 			err = dockerApi.Login(duser, dpass)
 			if err != nil {
 				fmt.Println("Couldn't log in, try again.")

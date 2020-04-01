@@ -1,10 +1,6 @@
 package main
 
-import (
-	"github.com/sp0x/docker-hub-cli/api"
-)
-
-var dockerApi = api.NewApi()
+//var dockerApi = api.NewApi()
 
 func main() {
 	Execute()
@@ -16,7 +12,7 @@ func main() {
 		//	return
 		//}
 		//log.Print(me)
-		//repos, err := dapi.MyRepositories()
+		//repos, err := dapi.GetMyRepositories()
 		//if err != nil {
 		//	fmt.Printf("Couldn't get repositories")
 		//	return

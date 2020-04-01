@@ -1,8 +1,10 @@
 package main
 
 import (
+	"errors"
 	"github.com/mitchellh/go-homedir"
 	log "github.com/sirupsen/logrus"
+	"github.com/sp0x/docker-hub-cli/api"
 	"github.com/spf13/viper"
 	"os"
 )
@@ -16,6 +18,20 @@ type Configuration struct {
 type AuthConfiguration struct {
 	Username string
 	Token    string
+}
+
+func getAuthorizedDockerApi() (*api.DockerApi, error) {
+	var authCfg AuthConfiguration
+	err := viper.UnmarshalKey("auth", &authCfg)
+	if err != nil {
+		//log.Warning("Could not unmarshal configuration.")
+		return nil, err
+	}
+	if authCfg.Token == "" {
+		return nil, errors.New("user not authenticated")
+	}
+	var dapi = api.NewApi(authCfg.Username, authCfg.Token)
+	return dapi, nil
 }
 
 func initConfig() {

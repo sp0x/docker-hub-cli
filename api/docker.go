@@ -12,7 +12,7 @@ import (
 	"time"
 )
 
-func NewApi() *DockerApi {
+func NewApi(username string, authToken string) *DockerApi {
 	d := &DockerApi{}
 	version := "2"
 	transport := &http.Transport{
@@ -29,6 +29,8 @@ func NewApi() *DockerApi {
 	d.cookieJar = cookies
 	d.apiVersion = version
 	d.routeBase = fmt.Sprintf("https://hub.docker.com/v%s", version)
+	d.username = username
+	d.token = authToken
 	return d
 }
 
@@ -134,8 +136,8 @@ func (d *DockerApi) GetBuildDetails(username, name, code string) error {
 	return nil
 }
 
-//MyRepositories gets the repositories of the currently logged in user.
-func (d *DockerApi) MyRepositories() ([]UserRepository, error) {
+//GetMyRepositories gets the repositories of the currently logged in user.
+func (d *DockerApi) GetMyRepositories() ([]UserRepository, error) {
 	if d.username == "" {
 		return nil, fmt.Errorf("user not authenticated")
 	}
