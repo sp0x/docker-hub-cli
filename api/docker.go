@@ -141,11 +141,11 @@ func (d *DockerApi) GetMyRepositories() ([]UserRepository, error) {
 	if d.username == "" {
 		return nil, fmt.Errorf("user not authenticated")
 	}
-	return d.Repositories(d.username)
+	return d.GetRepositories(d.username)
 }
 
-//Repositories gets the repositories of an user
-func (d *DockerApi) Repositories(username string) ([]UserRepository, error) {
+//GetRepositories gets the repositories of an user
+func (d *DockerApi) GetRepositories(username string) ([]UserRepository, error) {
 	if username == "" {
 		return nil, fmt.Errorf("no user given")
 	}
