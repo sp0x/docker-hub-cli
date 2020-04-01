@@ -59,10 +59,10 @@ func initConfig() {
 		if _, ok := err.(viper.ConfigFileNotFoundError); ok {
 			err = viper.SafeWriteConfig()
 			if err != nil {
-				log.Warning("error while writing default config file: %s\n %v\n", configFile, err)
+				log.Warningf("error while writing default config file: %s\n %v\n", configFile, err)
 			}
 		} else {
-			log.Warning("error while reading config file: %s\n %v\n", configFile, err)
+			log.Warningf("error while reading config file: %s\n %v\n", configFile, err)
 		}
 	}
 
