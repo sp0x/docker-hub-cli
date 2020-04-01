@@ -17,7 +17,6 @@ func init() {
 		Short: "Log into your docker hub account",
 		Run: func(cmd *cobra.Command, args []string) {
 			var authCfg AuthConfiguration
-			viper.SetDefault("docker.registry", "registry.hub.docker.com")
 			err := viper.UnmarshalKey("auth", &authCfg)
 			if err != nil {
 				log.Warning("Could not unmarshal configuration.")
