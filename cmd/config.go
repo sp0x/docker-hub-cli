@@ -20,6 +20,10 @@ type AuthConfiguration struct {
 	Token    string
 }
 
+func newUnauthorizedDockerApi() *api.DockerApi {
+	return api.NewApi("", "")
+}
+
 func getAuthorizedDockerApi() (*api.DockerApi, error) {
 	var authCfg AuthConfiguration
 	err := viper.UnmarshalKey("auth", &authCfg)

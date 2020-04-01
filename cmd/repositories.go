@@ -24,15 +24,18 @@ func init() {
 			return nil
 		},
 		Run: func(cmd *cobra.Command, args []string) {
-			dapi, err := getAuthorizedDockerApi()
-			if err != nil {
-				fmt.Println(err)
-				os.Exit(1)
-			}
+			var dapi *api.DockerApi
+			var err error
 			var repos []api.UserRepository
 			if len(args) > 0 {
+				dapi = newUnauthorizedDockerApi()
 				repos, err = dapi.GetRepositories(args[0])
 			} else {
+				dapi, err = getAuthorizedDockerApi()
+				if err != nil {
+					fmt.Println(err)
+					os.Exit(1)
+				}
 				repos, err = dapi.GetMyRepositories()
 			}
 
