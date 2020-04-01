@@ -727,3 +727,7 @@ func (d *DockerApi) AddCollaborator(username, name, collaborator string) error {
 func (d *DockerApi) GetUsername() string {
 	return d.username
 }
+
+func (d *DockerApi) GetToken() string {
+	return d.token
+}
