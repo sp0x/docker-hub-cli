@@ -43,6 +43,7 @@ type Repository struct {
 	isMd            *bool
 	tags            TagList
 	markdownLinks   []NamedLink
+	BuildSource     *BuildSource
 }
 
 //GetLinks Gets the links from the full description
@@ -161,6 +162,12 @@ func (r *Repository) GetTaggedRepositoryDirectory(dapi *DockerApi, tagName strin
 
 //GetGitRepo gets a link to the git repository for this repository
 func (r *Repository) GetGitRepo() string {
+	if r.BuildSource != nil {
+		surl, _ := r.BuildSource.GetSourceUrl()
+		if surl != nil {
+			return surl.String()
+		}
+	}
 	validLinks := r.GetGitRepoLinks()
 	if validLinks == nil {
 		return ""

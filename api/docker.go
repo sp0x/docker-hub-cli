@@ -29,6 +29,7 @@ func NewApi(username string, authToken string) *DockerApi {
 	d.client = NewDockerhubClient()
 	d.apiVersion = version
 	d.routeBase = fmt.Sprintf("https://hub.docker.com/v%s", version)
+	d.apiRouteBase = fmt.Sprintf("https://hub.docker.com/api")
 	d.username = username
 	d.token = authToken
 	return d
@@ -40,15 +41,20 @@ func joinURL(base string, paths ...string) string {
 }
 
 type DockerApi struct {
-	client     *http.Client
-	apiVersion string
-	routeBase  string
-	token      string
-	username   string
+	client       *http.Client
+	apiVersion   string
+	routeBase    string
+	apiRouteBase string
+	token        string
+	username     string
 }
 
 func (d *DockerApi) getRoute(p string) string {
 	return joinURL(d.routeBase, p)
+}
+
+func (d *DockerApi) getApiRoute(p string) string {
+	return joinURL(d.apiRouteBase, p)
 }
 
 func (d *DockerApi) SetRepositoryDescription(username, name string, descShort, descLong string) error {
@@ -342,6 +348,38 @@ func (d *DockerApi) GetMyRepository(name string) (*Repository, error) {
 	return d.GetRepository(d.GetUsername(), name)
 }
 
+func (d *DockerApi) GetBuildSource(username, name string) (*BuildSource, error) {
+	if username != "" && name == "" {
+		name = username
+		username = "library"
+	}
+	if username == "_" || username == "" {
+		username = "library"
+	}
+	username = strings.ToLower(username)
+	pth := d.getApiRoute(fmt.Sprintf("build/v1/source/?image=%s/%s", username, name))
+	r, err := requests.Get(d.client, pth, d.token)
+	if err != nil {
+		return nil, err
+	}
+	rawobj := make(map[string]json.RawMessage)
+	err = json.Unmarshal(r, &rawobj)
+	if err != nil {
+		return nil, err
+	}
+	var buildSources []BuildSource
+	err = json.Unmarshal(rawobj["objects"], &buildSources)
+	if err != nil {
+		return nil, err
+	}
+	if len(buildSources) == 0 {
+		return nil, nil
+	}
+	return &buildSources[0], nil
+}
+
+//https://hub.docker.com/api2/build/v1/source/?image=containous/traefik
+//https://hub.docker.com/api/build/v1/source/?image=plexinc%2Fpms-docker
 //GetRepository gets details about a repository
 func (d *DockerApi) GetRepository(username, name string) (*Repository, error) {
 	var repo Repository
@@ -362,6 +400,8 @@ func (d *DockerApi) GetRepository(username, name string) (*Repository, error) {
 	if err != nil {
 		return nil, err
 	}
+	buildSource, err := d.GetBuildSource(repo.Namespace, repo.Name)
+	repo.BuildSource = buildSource
 	return &repo, nil
 }
 
