@@ -7,6 +7,7 @@ import (
 	"github.com/spf13/cobra"
 	"os"
 	"strings"
+	"text/tabwriter"
 )
 
 func init() {
@@ -62,13 +63,16 @@ func showRepositoryDetails(fullName string) {
 	fmt.Printf("Pulls: %d	Stars: %d\n", repo.PullCount, repo.StarCount)
 	fmt.Printf("Last updated: %s\n", repo.LastUpdated)
 	fmt.Printf("Git repo: %s\n", gitRepo)
+	w := new(tabwriter.Writer)
+	w.Init(os.Stdout, 0, 8, 0, '\t', 0)
 	for _, tag := range tags {
 		if repo.IsMarkdowned() {
 			dockerfile, _ := repo.GetTaggedDockerfile(dapi, tag.Name, true)
 			//dir, _ := repo.GetTaggedRepositoryDirectory(dapi, tag.Name, true)
-			fmt.Printf("#%s\tBy: %s on %s\tDockerfile: %s\n", tag.Name, tag.LastUpdaterUsername, tag.LastUpdated, dockerfile)
+			_, _ = fmt.Fprintf(w, "#%s\tBy: %s on %s\tDockerfile: %s\n", tag.Name, tag.LastUpdaterUsername, tag.LastUpdated, dockerfile)
 		} else {
-			fmt.Printf("Tag: %s\n", tag.Name)
+			_, _ = fmt.Fprintf(w, "Tag: %s\n", tag.Name)
 		}
 	}
+	_ = w.Flush()
 }
