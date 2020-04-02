@@ -11,7 +11,7 @@ import (
 )
 
 func init() {
-	rootCmd.AddCommand(&cobra.Command{
+	reposCmd := &cobra.Command{
 		Use:   "repo [username or username/repo]",
 		Short: "View, Create, Delete repositories",
 		Long:  "Use this to explore repositories or to manage them. If no username is given then the logged in user is used.",
@@ -21,30 +21,97 @@ func init() {
 			}
 			return nil
 		},
-		Run: func(cmd *cobra.Command, args []string) {
-			var dapi *api.DockerApi
-			var err error
-			var repos []api.UserRepository
-			isSpecificRepo := len(args) > 0 && strings.Contains(args[0], "/")
-			if isSpecificRepo {
-				showRepositoryDetails(args[0])
-				return
-			} else if len(args) > 0 {
-				dapi = getAvailableDockerApi()
-				repos, err = dapi.GetRepositories(args[0])
-			} else {
-				dapi = getAvailableDockerApi()
-				repos, err = dapi.GetMyRepositories()
+		Run: reposCommand,
+	}
+	rmRepoCmd := &cobra.Command{
+		Use:   "rm [repository]",
+		Short: "Delete a repository",
+		Args: func(cmd *cobra.Command, args []string) error {
+			if len(args) > 1 {
+				return errors.New("only one repository accepted")
+			} else if len(args) < 1 {
+				return errors.New("repository is missing")
 			}
-			if err != nil {
-				fmt.Printf("Error while listing repositories: %v", err)
-				os.Exit(1)
-			}
-			for _, repo := range repos {
-				fmt.Printf("%s/%s\n", repo.Namespace, repo.Name)
-			}
+			return nil
 		},
-	})
+		Run: rmRepoCommand,
+	}
+	createRepoCmd := &cobra.Command{
+		Use:   "create [repository]",
+		Short: "Delete a repository",
+		Args: func(cmd *cobra.Command, args []string) error {
+			if len(args) > 1 {
+				return errors.New("only one repository accepted")
+			} else if len(args) < 1 {
+				return errors.New("repository is missing")
+			}
+			return nil
+		},
+		Run: createRepoCommand,
+	}
+	reposCmd.AddCommand(rmRepoCmd)
+	reposCmd.AddCommand(createRepoCmd)
+	rootCmd.AddCommand(reposCmd)
+}
+
+func reposCommand(cmd *cobra.Command, args []string) {
+	var dapi *api.DockerApi
+	var err error
+	var repos []api.UserRepository
+	isSpecificRepo := len(args) > 0 && strings.Contains(args[0], "/")
+	if isSpecificRepo {
+		showRepositoryDetails(args[0])
+		return
+	} else if len(args) > 0 {
+		dapi = getAvailableDockerApi()
+		repos, err = dapi.GetRepositories(args[0])
+	} else {
+		dapi = getAvailableDockerApi()
+		repos, err = dapi.GetMyRepositories()
+	}
+	if err != nil {
+		fmt.Printf("Error while listing repositories: %v\n", err)
+		os.Exit(1)
+	}
+	for _, repo := range repos {
+		fmt.Printf("%s/%s\n", repo.Namespace, repo.Name)
+	}
+}
+
+func rmRepoCommand(cmd *cobra.Command, args []string) {
+	dapi := getAvailableDockerApi()
+	if !dapi.IsAuthenticated() {
+		fmt.Printf("You need to login first.\n")
+		os.Exit(1)
+	}
+	repo := args[0]
+	parts := strings.Split(repo, "/")
+	//If no username is given then we'll use
+	if len(parts) < 2 {
+		parts = append(parts, "")
+		parts[0], parts[1] = dapi.GetUsername(), parts[0]
+	}
+	err := dapi.DeleteRepository(parts[0], parts[1])
+	if err != nil {
+		fmt.Printf("Could not delete repository: %v\n", err)
+		os.Exit(1)
+	}
+	fmt.Printf("Removed repository %s/%s\n", parts[0], parts[1])
+}
+
+func createRepoCommand(cmd *cobra.Command, args []string) {
+	dapi := getAvailableDockerApi()
+	if !dapi.IsAuthenticated() {
+		fmt.Printf("You need to login first.")
+		os.Exit(1)
+	}
+	name := args[0]
+	repo, err := dapi.CreateOwnRepository(name, false, "", "")
+	if err != nil {
+		fmt.Printf("\n")
+		os.Exit(1)
+	}
+	fmt.Printf("Created repository: %s/%s", repo.Namespace, repo.Name)
 }
 
 func showRepositoryDetails(fullName string) {

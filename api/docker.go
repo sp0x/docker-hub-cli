@@ -765,3 +765,7 @@ func (d *DockerApi) GetUsername() string {
 func (d *DockerApi) GetToken() string {
 	return d.token
 }
+
+func (d *DockerApi) IsAuthenticated() bool {
+	return d.username != "" && d.token != ""
+}
