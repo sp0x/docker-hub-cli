@@ -3,6 +3,7 @@ package main
 import (
 	"errors"
 	"fmt"
+	log "github.com/sirupsen/logrus"
 	"github.com/sp0x/docker-hub-cli/api"
 	"github.com/spf13/cobra"
 	"os"
@@ -18,27 +19,23 @@ func init() {
 			if len(args) > 1 {
 				return errors.New("only one username accepted")
 			}
-			if len(args) > 0 && strings.Contains(args[0], "/") {
-				return errors.New("username can't contain /")
-			}
 			return nil
 		},
 		Run: func(cmd *cobra.Command, args []string) {
 			var dapi *api.DockerApi
 			var err error
 			var repos []api.UserRepository
-			if len(args) > 0 {
-				dapi = newUnauthorizedDockerApi()
+			isSpecificRepo := len(args) > 0 && strings.Contains(args[0], "/")
+			if isSpecificRepo {
+				showRepositoryDetails(args[0])
+				return
+			} else if len(args) > 0 {
+				dapi = getAvailableDockerApi()
 				repos, err = dapi.GetRepositories(args[0])
 			} else {
-				dapi, err = getAuthorizedDockerApi()
-				if err != nil {
-					fmt.Println(err)
-					os.Exit(1)
-				}
+				dapi = getAvailableDockerApi()
 				repos, err = dapi.GetMyRepositories()
 			}
-
 			if err != nil {
 				fmt.Printf("Error while listing repositories: %v", err)
 				os.Exit(1)
@@ -48,4 +45,34 @@ func init() {
 			}
 		},
 	})
+}
+
+func showRepositoryDetails(fullName string) {
+	dapi := getAvailableDockerApi()
+	parts := strings.SplitN(fullName, "/", 2)
+	repo, err := dapi.GetRepository(parts[0], parts[1])
+	if err != nil {
+		fmt.Printf("Could not fetch %s: %v", fullName, err)
+	}
+	gitRepo := repo.GetGitRepo()
+	tags, err := dapi.GetTagsFromRepo(repo, 0, 0)
+	dockerfileContent, _ := dapi.GetDockerfileContents(parts[0], parts[1])
+	log.Print(dockerfileContent)
+	fmt.Printf(
+		`%s
+%s
+Pulls: %d\tStars: %d
+Last updated: %s
+Git Repo: %s
+`, fullName, repo.Description, repo.PullCount, repo.StarCount, repo.LastUpdated,
+		gitRepo)
+	for _, tag := range tags {
+		if repo.IsMarkdowned() {
+			dockerfile, _ := repo.GetTaggedDockerfile(dapi, tag.Name, true)
+			dir, _ := repo.GetTaggedRepositoryDirectory(dapi, tag.Name, true)
+			fmt.Printf("Tag: %s\tGit dir: %s\tDockerfile: %s\n", tag.Name, dir, dockerfile)
+		} else {
+			fmt.Printf("Tag: %s\n", tag.Name)
+		}
+	}
 }

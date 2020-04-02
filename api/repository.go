@@ -4,8 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"net/url"
-	"regexp"
-	"sort"
 	"strings"
 	"time"
 )
@@ -39,110 +37,33 @@ type Repository struct {
 	FullDescription string                 `json:"full_description"`
 	Affiliation     string                 `json:"affiliation"`
 	Permissions     *RepositoryPermissions `json:"permissions"`
+	isMd            *bool
+	tags            TagList
+	markdownLinks   []NamedLink
 }
 
-type NamedLink struct {
-	Name string
-	Link string
-}
-
-func (n *NamedLink) String() string {
-	return fmt.Sprintf("%s - %s ", n.Name, n.Link)
-}
-
+//GetLinks Gets the links from the full description
 func (r *Repository) GetLinks() []string {
 	return getLinks(r.FullDescription)
 }
 
+//GetMarkdownLinks gets all the markdown links from the repository's full description
 func (r *Repository) GetMarkdownLinks() []NamedLink {
-	return getMarkdownLinks(r.FullDescription, nil)
-}
-
-func getLinks(str string) []string {
-	var rx, err = regexp.Compile("https?://(www\\.)?[-a-zA-Z0-9@:%._+~#=]{1,256}\\.[a-zA-Z0-9()]{1,6}([-a-zA-Z0-9()@:%_+.~#?&/=]*)")
-	if err != nil {
-		return nil
+	if r.markdownLinks != nil {
+		return r.markdownLinks
 	}
-	matches := rx.FindAllString(str, -1)
-	return matches
-}
-
-//Gets all the markdown links from a given text.
-func getMarkdownLinks(strMarkdown string, filter func(link NamedLink) bool) []NamedLink {
-	rx, _ := regexp.Compile("\\[([^]]+)\\]\\((https?://\\S+)\\)")
-	matches := rx.FindAllStringSubmatch(strMarkdown, -1)
-	var output []NamedLink
-	for _, m := range matches {
-		nlink := NamedLink{m[1], m[2]}
-		if filter != nil {
-			if !filter(nlink) {
-				continue
-			}
-		}
-		output = append(output, nlink)
-	}
-	return output
-}
-
-func stringIsMarkdown(str string) bool {
-	hasLinks, err := regexp.MatchString("\\[[^]]+\\]\\((https?://\\S+)\\)", str)
-	if err != nil {
-		return false
-	}
-	return hasLinks
-}
-
-func isRepoSite(link string) bool {
-	slashparts := strings.SplitN(link, "/", 7)
-	//We dont need long urls.
-	//presumed url is https://github.com/owner/repo
-	if len(slashparts) != 5 {
-		return false
-	}
-	var repoSites = []string{"github.com", "butbucket.org"}
-	for _, reposite := range repoSites {
-		if strings.Contains(link, reposite) {
-			return true
-		}
-	}
-	return false
-}
-
-type Pair struct {
-	Key   string
-	Value int
-}
-type PairList []Pair
-
-func (p PairList) Len() int           { return len(p) }
-func (p PairList) Less(i, j int) bool { return p[i].Value < p[j].Value }
-func (p PairList) Swap(i, j int)      { p[i], p[j] = p[j], p[i] }
-
-func getMostCommonUrl(urls []string, slashCount int) string {
-	freqs := make(map[string]int)
-	for _, urlx := range urls {
-		parts := strings.SplitN(urlx, "/", slashCount+1)
-		trimmedUrl := strings.Join(parts[0:slashCount], "/")
-		freqs[trimmedUrl] += 1
-	}
-	i := 0
-	s := make(PairList, len(freqs))
-	for k, v := range freqs {
-		s[i] = Pair{k, v}
-		i += 1
-	}
-	sort.Sort(sort.Reverse(s))
-	return s[0].Key
+	r.markdownLinks = getMarkdownLinks(r.FullDescription, nil)
+	return r.markdownLinks
 }
 
 //GetTaggedDockerfile gets a link to the dockerfile for a given tag.
 //This works only with repositories that have Markdown descriptions
 func (r *Repository) GetTaggedDockerfile(dapi *DockerApi, tagName string, exactTagMatch bool) (string, error) {
-	if !stringIsMarkdown(r.FullDescription) {
+	if !r.IsMarkdowned() {
 		return "", errors.New("description is not in markdown")
 	}
 	//Check if there's a tag with that name
-	tags, err := dapi.GetTags(r.Namespace, r.Name, 0, 0)
+	tags, err := dapi.GetTagsFromRepo(r, 0, 0)
 	if err != nil {
 		return "", err
 	}
@@ -150,13 +71,23 @@ func (r *Repository) GetTaggedDockerfile(dapi *DockerApi, tagName string, exactT
 	if tag == nil {
 		return "", errors.New("tag not found")
 	}
-	mlinks := getMarkdownLinks(r.FullDescription, func(l NamedLink) bool {
+	mlinks := filterLinks(r.GetMarkdownLinks(), func(l NamedLink) bool {
 		return strings.HasSuffix(l.Link, "/Dockerfile") && strings.Contains(l.Name, fmt.Sprintf("`%s`", tagName))
 	})
 	if mlinks == nil || len(mlinks) == 0 {
 		return "", errors.New("the repository has no links in it's description")
 	}
 	return mlinks[0].Link, nil
+}
+
+//IsMarkdowned checks if there's any signs that the full description of the repository is in markdown.
+func (r *Repository) IsMarkdowned() bool {
+	if r.isMd != nil {
+		return *r.isMd
+	}
+	res := stringIsMarkdown(r.FullDescription)
+	r.isMd = &res
+	return res
 }
 
 //GetTaggedRepositoryDirectory gets the directory path for a given tag, from a git repository for this repository
@@ -188,6 +119,9 @@ func (r *Repository) GetTaggedRepositoryDirectory(dapi *DockerApi, tagName strin
 //GetGitRepo gets a link to the git repository for this repository
 func (r *Repository) GetGitRepo() string {
 	validLinks := r.GetGitRepoLinks()
+	if validLinks == nil {
+		return ""
+	}
 	urlx := getMostCommonUrl(validLinks, 5)
 	return urlx
 }
@@ -196,7 +130,7 @@ func (r *Repository) GetGitRepo() string {
 func (r *Repository) GetGitRepoLinks() []string {
 	d := r.FullDescription
 	var matches []string
-	if stringIsMarkdown(d) {
+	if r.IsMarkdowned() {
 		links := r.GetMarkdownLinks()
 		for _, l := range links {
 			matches = append(matches, l.Link)

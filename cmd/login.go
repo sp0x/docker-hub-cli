@@ -17,8 +17,7 @@ func init() {
 		Use:   "login",
 		Short: "Log into your docker hub account",
 		Run: func(cmd *cobra.Command, args []string) {
-			var authCfg AuthConfiguration
-			err := viper.UnmarshalKey("auth", &authCfg)
+			authCfg, err := getAuthConfig()
 			if err != nil {
 				log.Warning("Could not unmarshal configuration.")
 				return

@@ -1,7 +1,6 @@
 package main
 
 import (
-	"errors"
 	"github.com/mitchellh/go-homedir"
 	log "github.com/sirupsen/logrus"
 	"github.com/sp0x/docker-hub-cli/api"
@@ -11,31 +10,52 @@ import (
 
 var configFile string
 
-type Configuration struct {
-	Auth AuthConfiguration
-}
+//type Configuration struct {
+//	Auth AuthConfiguration
+//}
 
 type AuthConfiguration struct {
 	Username string
 	Token    string
 }
 
-func newUnauthorizedDockerApi() *api.DockerApi {
+func (ac *AuthConfiguration) IsValid() bool {
+	return ac.Username != "" && ac.Token != ""
+}
+
+func getUnauthorizedDockerApi() *api.DockerApi {
 	return api.NewApi("", "")
 }
 
-func getAuthorizedDockerApi() (*api.DockerApi, error) {
+func getAuthConfig() (*AuthConfiguration, error) {
 	var authCfg AuthConfiguration
 	err := viper.UnmarshalKey("auth", &authCfg)
 	if err != nil {
-		//log.Warning("Could not unmarshal configuration.")
 		return nil, err
 	}
-	if authCfg.Token == "" {
-		return nil, errors.New("user not authenticated")
+	return &authCfg, nil
+}
+
+//func getAuthorizedDockerApi() (*api.DockerApi, error) {
+//	authCfg, err := getAuthConfig()
+//	if err !=nil{
+//		return nil, err
+//	}
+//	if authCfg.Token == "" {
+//		return nil, errors.New("user not authenticated")
+//	}
+//	var dapi = api.NewApi(authCfg.Username, authCfg.Token)
+//	return dapi, nil
+//}
+
+func getAvailableDockerApi() *api.DockerApi {
+	authCfg, _ := getAuthConfig()
+	if authCfg != nil && authCfg.IsValid() {
+		var dapi = api.NewApi(authCfg.Username, authCfg.Token)
+		return dapi
+	} else {
+		return getUnauthorizedDockerApi()
 	}
-	var dapi = api.NewApi(authCfg.Username, authCfg.Token)
-	return dapi, nil
 }
 
 func initConfig() {

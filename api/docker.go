@@ -291,7 +291,17 @@ func (d *DockerApi) GetComments(username, name string, pageSize int, page int) e
 	return nil
 }
 
-//TODO Gets the tags for a repository
+//GetTagsFromRepo - gets all the tags from a repository and caches then for next calls
+func (d *DockerApi) GetTagsFromRepo(repo *Repository, pageSize, page int) (TagList, error) {
+	if repo.tags != nil {
+		return repo.tags, nil
+	}
+	tags, err := d.GetTags(repo.Namespace, repo.Name, pageSize, page)
+	repo.tags = tags
+	return repo.tags, err
+}
+
+//GetTags - gets all the available tags for a repository
 func (d *DockerApi) GetTags(username, name string, pageSize, page int) (TagList, error) {
 	if username != "" && name == "" {
 		name = username
@@ -331,6 +341,28 @@ func (d *DockerApi) GetMyRepository(name string) (*Repository, error) {
 		return nil, fmt.Errorf("user not authenticated")
 	}
 	return d.GetRepository(d.GetUsername(), name)
+}
+
+func (d *DockerApi) GetDockerfileContents(username, name string) (string, error) {
+	if username != "" && name == "" {
+		name = username
+		username = "library"
+	}
+	if username == "_" || username == "" {
+		username = "library"
+	}
+	username = strings.ToLower(username)
+	pth := d.getRoute(fmt.Sprintf("repositories/%s/%s/dockerfile", username, name)) + "/"
+	r, err := requests.Get(d.client, pth, d.token)
+	if err != nil {
+		return "", err
+	}
+	data := make(map[string]string)
+	err = json.Unmarshal(r, &data)
+	if err != nil {
+		return "", err
+	}
+	return data["contents"], nil
 }
 
 //GetRepository gets details about a repository
