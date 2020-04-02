@@ -123,7 +123,7 @@ func showRepositoryDetails(fullName string) {
 	}
 	gitRepo := repo.GetGitRepo()
 	tags, err := dapi.GetTagsFromRepo(repo, 0, 0)
-	//dockerfileContent, _ := dapi.GetDockerfileContents(parts[0], parts[1])
+	//dockerfileContent, _ := dapi.GetDockerfile(parts[0], parts[1])
 	//log.Print(dockerfileContent)
 	fmt.Println(fullName)
 	fmt.Println(repo.Description)

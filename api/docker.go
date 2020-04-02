@@ -6,27 +6,27 @@ import (
 	log "github.com/sirupsen/logrus"
 	"github.com/sp0x/docker-hub-cli/requests"
 	"net/http"
-	"net/http/cookiejar"
 	"path"
 	"strings"
 	"time"
 )
 
-func NewApi(username string, authToken string) *DockerApi {
-	d := &DockerApi{}
-	version := "2"
+func NewDockerhubClient() *http.Client {
 	transport := &http.Transport{
 		DisableCompression: false,
 	}
-	//Cookies are needed for authentication
-	cookies, _ := cookiejar.New(nil)
-	d.client = &http.Client{
+	return &http.Client{
 		Timeout:   time.Second * 10,
 		Transport: transport,
 		//Jar:       cookies, //Commented because this causes CSRF issues if enabled
 	}
-	//To keep a session
-	d.cookieJar = cookies
+}
+
+func NewApi(username string, authToken string) *DockerApi {
+	d := &DockerApi{}
+	version := "2"
+	//Cookies are needed for authentication
+	d.client = NewDockerhubClient()
 	d.apiVersion = version
 	d.routeBase = fmt.Sprintf("https://hub.docker.com/v%s", version)
 	d.username = username
@@ -44,7 +44,6 @@ type DockerApi struct {
 	apiVersion string
 	routeBase  string
 	token      string
-	cookieJar  *cookiejar.Jar
 	username   string
 }
 
@@ -341,28 +340,6 @@ func (d *DockerApi) GetMyRepository(name string) (*Repository, error) {
 		return nil, fmt.Errorf("user not authenticated")
 	}
 	return d.GetRepository(d.GetUsername(), name)
-}
-
-func (d *DockerApi) GetDockerfileContents(username, name string) (string, error) {
-	if username != "" && name == "" {
-		name = username
-		username = "library"
-	}
-	if username == "_" || username == "" {
-		username = "library"
-	}
-	username = strings.ToLower(username)
-	pth := d.getRoute(fmt.Sprintf("repositories/%s/%s/dockerfile", username, name)) + "/"
-	r, err := requests.Get(d.client, pth, d.token)
-	if err != nil {
-		return "", err
-	}
-	data := make(map[string]string)
-	err = json.Unmarshal(r, &data)
-	if err != nil {
-		return "", err
-	}
-	return data["contents"], nil
 }
 
 //GetRepository gets details about a repository

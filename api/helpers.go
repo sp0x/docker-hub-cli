@@ -2,6 +2,7 @@ package api
 
 import (
 	"fmt"
+	"net/url"
 	"regexp"
 	"sort"
 	"strings"
@@ -110,4 +111,21 @@ func isRepoSite(link string) bool {
 		}
 	}
 	return false
+}
+
+//https://raw.githubusercontent.com/nginxinc/docker-nginx/5c15613519a26c6adc244c24f814a95c786cfbc3/mainline/buster/Dockerfile
+//https://github.com               /nginxinc/docker-nginx/5c15613519a26c6adc244c24f814a95c786cfbc3/mainline/buster/Dockerfile
+func formatGitRepoUrl(giturl string) string {
+	repoUrl, _ := url.Parse(giturl)
+	if strings.HasPrefix(repoUrl.Host, "github.com") {
+		repoUrl.Host = "raw.githubusercontent.com"
+		pth := repoUrl.Path
+		pthParts := strings.Split(pth, "/")
+		//Replace blob urls with normal ones.
+		if len(pthParts) > 5 && pthParts[3] == "blob" {
+			pth = strings.Join(pthParts[:3], "/") + "/" + strings.Join(pthParts[4:], "/")
+			repoUrl.Path = pth
+		}
+	}
+	return repoUrl.String()
 }

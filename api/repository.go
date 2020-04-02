@@ -1,8 +1,11 @@
 package api
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
+	log "github.com/sirupsen/logrus"
+	"github.com/sp0x/docker-hub-cli/requests"
 	"net/url"
 	"strings"
 	"time"
@@ -54,6 +57,44 @@ func (r *Repository) GetMarkdownLinks() []NamedLink {
 	}
 	r.markdownLinks = getMarkdownLinks(r.FullDescription, nil)
 	return r.markdownLinks
+}
+
+//GetDockerfile gets the contents of the latest available image's Dockerfile for this repository
+func (r *Repository) GetDockerfile(dapi *DockerApi) (string, error) {
+	ns, name := r.Namespace, r.Name
+	var content string
+	pth := dapi.getRoute(fmt.Sprintf("repositories/%s/%s/dockerfile", ns, name)) + "/"
+	resp, err := requests.Get(dapi.client, pth, dapi.token)
+	if err != nil {
+		//return "", err
+		log.Warningf("Could not call dockerfile api for %s/%s: %s", ns, name, err)
+	} else {
+		data := make(map[string]string)
+		err = json.Unmarshal(resp, &data)
+		if err == nil {
+			content = data["contents"]
+		} else {
+			log.Warningf("Could not unmarshal dockerfile api contents for %s/%s: %s", ns, name, err)
+		}
+
+	}
+	if content == "" {
+		latestDockerfile, err := r.GetTaggedDockerfile(dapi, "latest", true)
+		if err != nil || latestDockerfile == "" {
+			return "", fmt.Errorf("could not find latest Dockerfile, %s", err)
+		} else {
+			latestDockerfile = formatGitRepoUrl(latestDockerfile)
+			resp, err := requests.GetWithHeaders(dapi.client, latestDockerfile, map[string]string{
+				"Accept": "application/vnd.github.v3.raw",
+			})
+			if err == nil {
+				content = string(resp)
+			} else {
+				log.Warningf("Could not fetch latest dockerfile for %s/%s: %s\n", ns, name, err)
+			}
+		}
+	}
+	return content, nil
 }
 
 //GetTaggedDockerfile gets a link to the dockerfile for a given tag.

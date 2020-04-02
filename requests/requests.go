@@ -120,6 +120,27 @@ func Get(client *http.Client, route string, token string) ([]byte, error) {
 	return body, err
 }
 
+func GetWithHeaders(client *http.Client, url string, headers map[string]string) ([]byte, error) {
+	if client == nil {
+		return []byte{}, errors.New("null transport client")
+	}
+	req, _ := http.NewRequest("GET", url, nil)
+	//setupHeaders(req)
+	for k, v := range headers {
+		req.Header.Set(k, v)
+	}
+	res, err := client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer res.Body.Close()
+	body, err := ioutil.ReadAll(res.Body)
+	if res.StatusCode >= 400 {
+		return body, errors.New(strconv.Itoa(res.StatusCode))
+	}
+	return body, err
+}
+
 func Delete(client *http.Client, route string, token string) ([]byte, error) {
 	if client == nil {
 		return []byte{}, errors.New("null transport client")
