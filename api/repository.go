@@ -57,7 +57,7 @@ func (r *Repository) GetMarkdownLinks() []NamedLink {
 }
 
 //GetTaggedDockerfile gets a link to the dockerfile for a given tag.
-//This works only with repositories that have Markdown descriptions
+//This works only with repositories that have Markdown descriptions, since the link names are used too in order to figure out the tag
 func (r *Repository) GetTaggedDockerfile(dapi *DockerApi, tagName string, exactTagMatch bool) (string, error) {
 	if !r.IsMarkdowned() {
 		return "", errors.New("description is not in markdown")
@@ -72,7 +72,9 @@ func (r *Repository) GetTaggedDockerfile(dapi *DockerApi, tagName string, exactT
 		return "", errors.New("tag not found")
 	}
 	mlinks := filterLinks(r.GetMarkdownLinks(), func(l NamedLink) bool {
-		return strings.HasSuffix(l.Link, "/Dockerfile") && strings.Contains(l.Name, fmt.Sprintf("`%s`", tagName))
+		isDockerfile := strings.HasSuffix(l.Link, "/Dockerfile")
+		//If it's a dockerfile link or the link's name contains the tag name enclosed in ``
+		return isDockerfile && strings.Contains(l.Name, fmt.Sprintf("`%s`", tagName))
 	})
 	if mlinks == nil || len(mlinks) == 0 {
 		return "", errors.New("the repository has no links in it's description")
@@ -130,14 +132,15 @@ func (r *Repository) GetGitRepo() string {
 func (r *Repository) GetGitRepoLinks() []string {
 	d := r.FullDescription
 	var matches []string
-	if r.IsMarkdowned() {
-		links := r.GetMarkdownLinks()
-		for _, l := range links {
-			matches = append(matches, l.Link)
-		}
-	} else {
-		matches = getLinks(d)
-	}
+	matches = getLinks(d)
+	//if r.IsMarkdowned() {
+	//	links := r.GetMarkdownLinks()
+	//	for _, l := range links {
+	//		matches = append(matches, l.Link)
+	//	}
+	//} else {
+	//	matches = getLinks(d)
+	//}
 	var validLinks []string
 	for _, l := range matches {
 		if strings.ContainsRune(l, '#') {

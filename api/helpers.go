@@ -47,11 +47,14 @@ func getMostCommonUrl(urls []string, slashCount int) string {
 }
 
 func getLinks(str string) []string {
-	var rx, err = regexp.Compile("https?://(www\\.)?[-a-zA-Z0-9@:%._+~#=]{1,256}\\.[a-zA-Z0-9()]{1,6}([-a-zA-Z0-9()@:%_+.~#?&/=]*)")
+	var rx, err = regexp.Compile("https?://(www\\.)?[-a-zA-Z0-9@:%._+~#=]{1,256}\\.[a-zA-Z0-9()]{1,6}([-a-zA-Z0-9@:%_+.~#?&/=]*)")
 	if err != nil {
 		return nil
 	}
 	matches := rx.FindAllString(str, -1)
+	for ix, m := range matches {
+		matches[ix] = strings.TrimRight(m, ")")
+	}
 	return matches
 }
 

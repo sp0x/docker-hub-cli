@@ -36,18 +36,6 @@ func getAuthConfig() (*AuthConfiguration, error) {
 	return &authCfg, nil
 }
 
-//func getAuthorizedDockerApi() (*api.DockerApi, error) {
-//	authCfg, err := getAuthConfig()
-//	if err !=nil{
-//		return nil, err
-//	}
-//	if authCfg.Token == "" {
-//		return nil, errors.New("user not authenticated")
-//	}
-//	var dapi = api.NewApi(authCfg.Username, authCfg.Token)
-//	return dapi, nil
-//}
-
 func getAvailableDockerApi() *api.DockerApi {
 	authCfg, _ := getAuthConfig()
 	if authCfg != nil && authCfg.IsValid() {

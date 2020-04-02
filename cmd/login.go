@@ -25,7 +25,7 @@ func init() {
 			duser := authCfg.Username
 			var dpass string
 			if authCfg.Token != "" {
-				fmt.Printf("Already loggedin as %s", duser)
+				fmt.Printf("Already loggedin as %s\n", duser)
 				os.Exit(0)
 			}
 			if duser == "" || authCfg.Token == "" {
