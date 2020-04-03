@@ -18,14 +18,15 @@ func init() {
 		Short: "View, Create, Delete repositories",
 		Long:  "Use this to explore repositories or to manage them. If no username is given then the logged in user is used.",
 		Args: func(cmd *cobra.Command, args []string) error {
-			if len(args) > 1 {
-				return errors.New("only one username accepted")
-			}
+			//if len(args) > 1 {
+			//	return errors.New("only one username accepted")
+			//}
 			return nil
 		},
 		Run: reposCommand,
 	}
 	reposCmd.Flags().BoolVarP(&repoShowTags, "tags", "t", false, "Also shows all the tags in the repository")
+
 	rmRepoCmd := &cobra.Command{
 		Use:   "rm [repository]",
 		Short: "Delete a repository",
@@ -61,24 +62,29 @@ func reposCommand(cmd *cobra.Command, args []string) {
 	var dapi *api.DockerApi
 	var err error
 	var repos []api.UserRepository
-	isSpecificRepo := len(args) > 0 && strings.Contains(args[0], "/")
-	if isSpecificRepo {
-		showRepositoryDetails(args[0])
-		return
-	} else if len(args) > 0 {
+	if len(args) > 0 {
 		dapi = getAvailableDockerApi()
-		repos, err = dapi.GetRepositories(args[0])
+		for _, arg := range args {
+			isSpecificRepo := strings.Contains(arg, "/")
+			if isSpecificRepo {
+				showRepositoryDetails(dapi, arg)
+				fmt.Println("")
+			} else if len(args) > 0 {
+				repos, err = dapi.GetRepositories(arg)
+			}
+		}
 	} else {
 		dapi = getAvailableDockerApi()
 		repos, err = dapi.GetMyRepositories()
+		if err != nil {
+			fmt.Printf("Error while listing repositories: %v\n", err)
+			os.Exit(1)
+		}
+		for _, repo := range repos {
+			fmt.Printf("%s/%s\n", repo.Namespace, repo.Name)
+		}
 	}
-	if err != nil {
-		fmt.Printf("Error while listing repositories: %v\n", err)
-		os.Exit(1)
-	}
-	for _, repo := range repos {
-		fmt.Printf("%s/%s\n", repo.Namespace, repo.Name)
-	}
+
 }
 
 func rmRepoCommand(cmd *cobra.Command, args []string) {
@@ -117,8 +123,7 @@ func createRepoCommand(cmd *cobra.Command, args []string) {
 	fmt.Printf("Created repository: %s/%s", repo.Namespace, repo.Name)
 }
 
-func showRepositoryDetails(fullName string) {
-	dapi := getAvailableDockerApi()
+func showRepositoryDetails(dapi *api.DockerApi, fullName string) {
 	parts := strings.SplitN(fullName, "/", 2)
 	repo, err := dapi.GetRepository(parts[0], parts[1])
 	if err != nil {
@@ -127,13 +132,15 @@ func showRepositoryDetails(fullName string) {
 	gitRepo := repo.GetGitRepo()
 	tags, err := dapi.GetTagsFromRepo(repo, 0, 0)
 
-	//dockerfileContent, _ := dapi.GetDockerfile(parts[0], parts[1])
-	//log.Print(dockerfileContent)
 	fmt.Println(fullName)
 	fmt.Println(repo.Description)
 	fmt.Printf("Pulls: %d	Stars: %d\n", repo.PullCount, repo.StarCount)
-	fmt.Printf("Last updated: %s\n", repo.LastUpdated)
-	fmt.Printf("Git repo: %s\n", gitRepo)
+	if repo.LastUpdated != nil {
+		fmt.Printf("Last updated: %s\n", timeElapsedRightNow(*repo.LastUpdated, false))
+	}
+	if gitRepo != "" {
+		fmt.Printf("Git repo: %s\n", gitRepo)
+	}
 	if repoShowTags {
 		w := new(tabwriter.Writer)
 		w.Init(os.Stdout, 0, 8, 0, '\t', 0)
