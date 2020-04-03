@@ -30,6 +30,7 @@ script:
 - if [ "${LATEST}" = "true" ]; then upx docker-hub-cli.*; fi
 after_success:
 - bash <(curl -s https://codecov.io/bash)
+- ls -la
 
 deploy:
   provider: releases
