@@ -33,7 +33,7 @@ jobs:
           name: "build binaries"
           command: |
             gox -os="linux darwin windows" -arch="amd64" -output="docker-hub-cli.{{.OS}}.{{.Arch}}" -ldflags "-s -w -X main.Rev=`git rev-parse --short HEAD`" -verbose ./...; \
-            upx docker-hub-cli.*
+            upx/${UPXVER}/upx docker-hub-cli.*
       - run:
           name: "code coverage"
           command: bash <(curl -s https://codecov.io/bash)
