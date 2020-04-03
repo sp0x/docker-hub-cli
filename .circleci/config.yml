@@ -22,7 +22,8 @@ jobs:
     working_directory: /go/src/github.com/sp0x/docker-hub-cli
     steps:
       - checkout
-      - run: go get github.com/mitchellh/gox
+      - run: go get github.com/mitchellh/gox; \
+        go get github.com/konsorten/go-windows-terminal-sequences
       # specify any bash command here prefixed with `run: `
       - run: go get -v -t -d ./...
       - run:
