@@ -21,7 +21,6 @@ install:
 - export PATH="${TRAVIS_BUILD_DIR}/upx/${UPXVER}/:${PATH}"
 - upx --version | grep -E '^upx'
 script:
-- export GIT_EXEC_PATH=$GIT_DIST_PATH
 - export PATH=$GIT_DIST_PATH:$PATH
 - make test-coverage
 - go vet ./...
@@ -32,14 +31,14 @@ after_success:
 - bash <(curl -s https://codecov.io/bash)
 - ls -la
 
-deploy:
-  provider: releases
-  api_key:
-    secure: "hinJLn3ACzbz99HAK/DLPACrrLNyr7eXxEe997Km/0l8gVK9TZwGeSoTxMdeNeTHrOkiqrF8KWHbpipcsgWOjDFDCVxUw6XbvpBC0qkOj75uLObqldS7E0A+J73ux28ZZZYQRPsvpkJ1qMs2hSKiMK7RCFcYppPWMJt+tfQTVO8lQUoY1hsuLHExgLkhduXjnI4JlRorpF8ZIyRpjECv1LAekk8RDUQyv/WBII8Ybqh1fPVHAF2upOk66DBwTQsltV/SeVEqlRgqkQwN6J6ycaZbRp4ZdvK3xQwS430BmnGco8LFjNj8OXkkp6uG9IUDH2J9EZ+ngJeniwutiXn+iEoZ5l8TeTjz98pwmd3gqw2I9JhHaj4t9IwoQOfaiH+EWyLJArL3W/HJg9d0QIh/UO9zIYWgwTb/1fnKnnFHXJ7ZDEslwpZSaLya/JzCBf1TDkZy3QrhVTG2H1YKSDUlBv0wZBf6snaOBvKR7Tr8lPKJUG1z49h13Kot/83r4iH9fPBEA8ygZyzA+2X8ha4Vpt7U4kPM3VeM9OHbir4kGQ1p2whRsy/fiq4k4+RLSOVZPUjjD34V9iYIEOwnu94LxGOWVMUM0KuOuuJC6kbXUUOyvYGtcT55oQo+d9LX4RuPDWBCsogJLqZUbZPo6fk7uIx1eT3mqFUuNyvP5SGnong="
-  file:
-    - docker-hub-cli.linux.amd64
-    - docker-hub-cli.darwin.amd64
-    - docker-hub-cli.windows.amd64.exe
-  on:
-    repo: sp0x/docker-hub-cli
-    tags: true
+#deploy:
+#  provider: releases
+#  api_key:
+#    secure: "hinJLn3ACzbz99HAK/DLPACrrLNyr7eXxEe997Km/0l8gVK9TZwGeSoTxMdeNeTHrOkiqrF8KWHbpipcsgWOjDFDCVxUw6XbvpBC0qkOj75uLObqldS7E0A+J73ux28ZZZYQRPsvpkJ1qMs2hSKiMK7RCFcYppPWMJt+tfQTVO8lQUoY1hsuLHExgLkhduXjnI4JlRorpF8ZIyRpjECv1LAekk8RDUQyv/WBII8Ybqh1fPVHAF2upOk66DBwTQsltV/SeVEqlRgqkQwN6J6ycaZbRp4ZdvK3xQwS430BmnGco8LFjNj8OXkkp6uG9IUDH2J9EZ+ngJeniwutiXn+iEoZ5l8TeTjz98pwmd3gqw2I9JhHaj4t9IwoQOfaiH+EWyLJArL3W/HJg9d0QIh/UO9zIYWgwTb/1fnKnnFHXJ7ZDEslwpZSaLya/JzCBf1TDkZy3QrhVTG2H1YKSDUlBv0wZBf6snaOBvKR7Tr8lPKJUG1z49h13Kot/83r4iH9fPBEA8ygZyzA+2X8ha4Vpt7U4kPM3VeM9OHbir4kGQ1p2whRsy/fiq4k4+RLSOVZPUjjD34V9iYIEOwnu94LxGOWVMUM0KuOuuJC6kbXUUOyvYGtcT55oQo+d9LX4RuPDWBCsogJLqZUbZPo6fk7uIx1eT3mqFUuNyvP5SGnong="
+#  file:
+#    - docker-hub-cli.linux.amd64
+#    - docker-hub-cli.darwin.amd64
+#    - docker-hub-cli.windows.amd64.exe
+#  on:
+#    repo: sp0x/docker-hub-cli
+#    tags: true

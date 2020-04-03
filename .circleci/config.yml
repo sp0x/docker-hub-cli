@@ -7,6 +7,8 @@ jobs:
     docker:
       # specify the version
       - image: circleci/golang:1.12
+    environment:
+      - UPXVER: "3.95"
 
       # Specify service dependencies here if necessary
       # CircleCI maintains a library of pre-built images
@@ -20,7 +22,23 @@ jobs:
     working_directory: /go/src/github.com/sp0x/docker-hub-cli
     steps:
       - checkout
-
+      - run: go get github.com/mitchellh/gox
       # specify any bash command here prefixed with `run: `
       - run: go get -v -t -d ./...
-      - run: go test -v ./...
+      - run:
+          name: "Install upx"
+          command: |
+            { [ -f upx/${UPXVER}/upx ]; } || { curl -OL https://github.com/upx/upx/releases/download/v${UPXVER}/upx-${UPXVER}-amd64_linux.tar.xz;
+              tar xvf upx-${UPXVER}-amd64_linux.tar.xz; mkdir -p upx; mv upx-${UPXVER}-amd64_linux
+              upx/${UPXVER}; };
+            export PATH="${TRAVIS_BUILD_DIR}/upx/${UPXVER}/:${PATH}";
+            upx --version | grep -E '^upx'
+      - run: make test-coverage
+      - run:
+          name: "build binaries"
+          command: |
+            if [ "${LATEST}" = "true" ]; then gox -os="linux darwin windows" -arch="amd64" -output="docker-hub-cli.{{.OS}}.{{.Arch}}"
+              -ldflags "-s -w -X main.Rev=`git rev-parse --short HEAD`" -verbose ./...; upx docker-hub-cli.*; fi
+      - run:
+          name: "code coverage"
+          command: bash <(curl -s https://codecov.io/bash)
