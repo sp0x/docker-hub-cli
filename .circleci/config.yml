@@ -16,7 +16,8 @@ jobs:
       - run:
           name: "Install dependencies"
           command: |
-          go get github.com/mitchellh/gox; go get github.com/konsorten/go-windows-terminal-sequences
+            go get github.com/mitchellh/gox; \
+            go get github.com/konsorten/go-windows-terminal-sequences
       # specify any bash command here prefixed with `run: `
       - run: go get -v -t -d ./...
       - run:
