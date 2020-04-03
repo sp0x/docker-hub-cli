@@ -53,9 +53,42 @@ func init() {
 		},
 		Run: createRepoCommand,
 	}
+	lsReposCmd := &cobra.Command{
+		Use:   "ls [username]",
+		Short: "Lists the repositories of a given user",
+		Long:  "Use this to list the repositories that a user has. If no username is provided then your own repositories are listed.",
+		Args: func(cmd *cobra.Command, args []string) error {
+			return nil
+		},
+		Run: listUserReposCommand,
+	}
+	reposCmd.AddCommand(lsReposCmd)
 	reposCmd.AddCommand(rmRepoCmd)
 	reposCmd.AddCommand(createRepoCmd)
 	rootCmd.AddCommand(reposCmd)
+}
+
+func listUserReposCommand(cmd *cobra.Command, args []string) {
+	dapi := getAvailableDockerApi()
+	var users []string
+	if len(args) == 0 && dapi.IsAuthenticated() {
+		users = append(users, dapi.GetUsername())
+	} else {
+		users = append(users, args...)
+	}
+	for _, user := range users {
+		if user == "_" {
+			user = "library"
+		}
+		repos, err := dapi.GetRepositories(user)
+		if err != nil {
+			fmt.Printf("Could not get repositories for user: %s\n", user)
+			continue
+		}
+		for _, repo := range repos {
+			fmt.Printf("%s/%s\n", repo.Namespace, repo.Name)
+		}
+	}
 }
 
 func reposCommand(cmd *cobra.Command, args []string) {
@@ -65,13 +98,8 @@ func reposCommand(cmd *cobra.Command, args []string) {
 	if len(args) > 0 {
 		dapi = getAvailableDockerApi()
 		for _, arg := range args {
-			isSpecificRepo := strings.Contains(arg, "/")
-			if isSpecificRepo {
-				showRepositoryDetails(dapi, arg)
-				fmt.Println("")
-			} else if len(args) > 0 {
-				repos, err = dapi.GetRepositories(arg)
-			}
+			showRepositoryDetails(dapi, arg)
+			fmt.Println("")
 		}
 	} else {
 		dapi = getAvailableDockerApi()
@@ -125,13 +153,16 @@ func createRepoCommand(cmd *cobra.Command, args []string) {
 
 func showRepositoryDetails(dapi *api.DockerApi, fullName string) {
 	parts := strings.SplitN(fullName, "/", 2)
+	if len(parts) == 1 {
+		parts = append(parts, "")
+		parts[0], parts[1] = "library", parts[0]
+	}
 	repo, err := dapi.GetRepository(parts[0], parts[1])
 	if err != nil {
 		fmt.Printf("Could not fetch %s: %v", fullName, err)
 	}
 	gitRepo := repo.GetGitRepo()
 	tags, err := dapi.GetTagsFromRepo(repo, 0, 0)
-
 	fmt.Println(fullName)
 	fmt.Println(repo.Description)
 	fmt.Printf("Pulls: %d	Stars: %d\n", repo.PullCount, repo.StarCount)
