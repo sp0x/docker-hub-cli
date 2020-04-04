@@ -13,9 +13,9 @@ jobs:
       - UPXVER: "3.95"
     working_directory: /go/src/github.com/sp0x/docker-hub-cli
     steps:
+      - checkout
       - attach_workspace:
           at: ./artifacts
-      - checkout
       - run:
           name: "Install dependencies"
           command: |
