@@ -17,6 +17,7 @@ require (
 	github.com/spf13/viper v1.6.2
 	github.com/stretchr/objx v0.1.1 // indirect
 	github.com/stretchr/testify v1.5.1 // indirect
+	github.com/tcnksm/ghr v0.13.0 // indirect
 	golang.org/x/crypto v0.0.0-20190308221718-c2843e01d9a2
 	gopkg.in/check.v1 v1.0.0-20200227125254-8fa46927fb4f // indirect
 )
