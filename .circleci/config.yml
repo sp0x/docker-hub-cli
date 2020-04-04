@@ -37,6 +37,7 @@ jobs:
           command: |
             gox -os="linux darwin windows" -arch="amd64" -output="docker-hub-cli.{{.OS}}.{{.Arch}}" -ldflags "-s -w -X main.Rev=`git rev-parse --short HEAD`" -verbose ./...; \
             upx/${UPXVER}/upx docker-hub-cli.*
+            mv docker-hub-cli.* artifacts
       - run:
           name: "code coverage"
           command: bash <(curl -s https://codecov.io/bash)
@@ -45,4 +46,4 @@ jobs:
           command: |
             go get github.com/tcnksm/ghr
             VERSION=0.1.6
-            ghr -t ${GITHUB_TOKEN} -u ${CIRCLE_PROJECT_USERNAME} -r ${CIRCLE_PROJECT_REPONAME} -c ${CIRCLE_SHA1} -delete ${VERSION} ./artifacts/
+            ghr ${VERSION} -t ${GITHUB_TOKEN} -u ${CIRCLE_PROJECT_USERNAME} -r ${CIRCLE_PROJECT_REPONAME} -c ${CIRCLE_SHA1} -delete ${VERSION} ./artifacts/
