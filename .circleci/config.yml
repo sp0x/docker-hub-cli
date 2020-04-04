@@ -2,6 +2,8 @@
 #
 # Check https://circleci.com/docs/2.0/language-go/ for more details
 version: 2
+orbs:
+  github-release: h-matsuo/github-release@0.1.1
 jobs:
   build:
     docker:
@@ -9,9 +11,10 @@ jobs:
       - image: circleci/golang:1.12
     environment:
       - UPXVER: "3.95"
-
     working_directory: /go/src/github.com/sp0x/docker-hub-cli
     steps:
+      - attach_workspace:
+          at: ./artifacts
       - checkout
       - run:
           name: "Install dependencies"
@@ -37,3 +40,9 @@ jobs:
       - run:
           name: "code coverage"
           command: bash <(curl -s https://codecov.io/bash)
+      - run:
+          name: "Publish release on GitHub"
+          command: |
+            go get github.com/tcnksm/ghr
+            VERSION=0.1.6
+            ghr -t ${GITHUB_TOKEN} -u ${CIRCLE_PROJECT_USERNAME} -r ${CIRCLE_PROJECT_REPONAME} -c ${CIRCLE_SHA1} -delete ${VERSION} ./artifacts/
